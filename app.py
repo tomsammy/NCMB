@@ -50,6 +50,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Vercel serverless path adaptation middleware
+@app.middleware("http")
+async def vercel_path_rewrite_middleware(request: Request, call_next):
+    raw_path = request.scope.get("path", "")
+    if raw_path.startswith("/api/index.py"):
+        new_path = raw_path[len("/api/index.py"):] or "/"
+        request.scope["path"] = new_path
+    elif raw_path.startswith("/api/index"):
+        new_path = raw_path[len("/api/index"):] or "/"
+        request.scope["path"] = new_path
+    return await call_next(request)
+
 # Robust static directory resolver for local and Vercel environments
 STATIC_DIR = None
 for p in [
@@ -267,6 +279,9 @@ def startup_event():
 
 @app.get("/", response_class=HTMLResponse)
 @app.get("/admin", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
 def read_index():
     candidates = [
         os.path.join(STATIC_DIR, "index.html"),
