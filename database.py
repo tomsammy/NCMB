@@ -448,11 +448,13 @@ def _seed_exam_tokens_if_needed(conn, cursor):
             # Seed up to 3500 tokens
             sample_tokens = tokens[:3500]
             if IS_POSTGRES:
-                cursor.executemany("""
+                from psycopg2.extras import execute_values
+                raw_cur = cursor.cursor if hasattr(cursor, 'cursor') else cursor
+                execute_values(raw_cur, """
                     INSERT INTO exam_tokens (token_code, status)
-                    VALUES (%s, 'unassigned')
+                    VALUES %s
                     ON CONFLICT (token_code) DO NOTHING
-                """, [(t,) for t in sample_tokens])
+                """, [(t, 'unassigned') for t in sample_tokens])
             else:
                 cursor.executemany("""
                     INSERT OR IGNORE INTO exam_tokens (token_code, status)
