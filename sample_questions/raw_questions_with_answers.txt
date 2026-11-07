@@ -1,0 +1,458 @@
+ASSESSMENT ON MODULE 1: DIGITAL FOUNDATIONS
+Instructions
+Answer all  questions. Select the single most appropriate answer from options A–D; Each question carries equal marks.
+PART 1 — PROFESSIONAL MOCK EXAMINATION
+Coverage: Weeks 1–3 | Total Questions: 60 | Difficulty: Medium
+SECTION A: DIGITAL PRODUCTIVITY, CLOUD ECOSYSTEMS AND VERSION CONTROL
+Questions 1–20 | Week 1
+1. An oil and gas company's data team currently stores operational reports on individual employees' computers. When employees are unavailable, other team members struggle to access the latest versions. Management wants a centralised environment where authorised employees can collaborate on documents while maintaining access controls and version history. Which solution is most appropriate?
+A. Require employees to email updated copies of reports to the entire team.B. Store all reports on one employee's computer and grant other employees network access.C. Use a cloud-based collaboration platform with shared storage, permissions and version history.D. Allow employees to maintain separate copies and reconcile differences at the end of each month.
+2. A project team uses Microsoft Teams for discussions and SharePoint for document storage. Team members frequently upload multiple versions of the same project document into different chat conversations. This makes it difficult to identify the authoritative version. What should the team do?
+A. Establish a central SharePoint document library and share links to documents through Teams.B. Disable document uploads in Teams and require all files to be stored on personal computers.C. Create a separate SharePoint site for every document revision.D. Ask the project manager to download and redistribute documents whenever changes occur.
+3. A financial institution must retain sensitive operational records within infrastructure that it directly controls because of internal security and regulatory requirements. However, its analysts also need remote access to approved reporting tools. Which infrastructure arrangement best addresses these requirements?
+A. A fully public cloud environment with unrestricted access.B. A public cloud environment with no additional access controls.C. A fully disconnected local network that prevents all remote access.D. An on-premises environment combined with securely controlled remote access to approved services.
+4. An organisation collects seismic records, equipment sensor readings, maintenance reports and structured financial data. Its data engineers need a storage environment capable of retaining large volumes of raw data in different formats before transformation. Which architecture is most suitable?
+A. A relational database containing only predefined tables.B. A data lake that can retain structured, semi-structured and unstructured data.C. A data warehouse that requires all incoming data to follow a predefined analytical schema.D. A spreadsheet-based repository organised by department.
+5. A company's executives require consistent monthly performance reports showing production, operating costs and equipment downtime. The underlying data comes from several operational systems and must be cleaned, integrated and organised for reporting. Which solution is most appropriate?
+A. A data warehouse designed for structured reporting and analytical queries.B. A data lake containing unprocessed files without an established reporting structure.C. A version-control repository containing copies of operational databases.D. A document-management platform containing monthly PDF reports.
+6. A data engineering team extracts information from several operational databases, cleans it in a separate processing environment and then loads the transformed records into a warehouse. Which data integration approach are they using?
+A. ELT, because transformation occurs after loading into the target warehouse.B. Data replication, because the source systems remain unchanged.C. ETL, because extraction and transformation occur before loading.D. Data federation, because information is queried without being transferred.
+7. A company adopts a cloud data warehouse that supports processing and transforming large datasets within the warehouse itself. The data engineering team decides to load raw source data first and perform transformations afterwards. Which approach best describes this workflow?
+A. ETL, because the data must be cleaned before extraction.B. ELT, because extraction and loading precede transformation.C. Data federation, because transformation is performed at the source.D. Data replication, because the warehouse receives a copy of the source data.
+8. A data analyst modifies a shared Python script and accidentally removes a section of code that previously worked. The team wants to maintain a record of changes and restore earlier versions when necessary. Which tool is most appropriate?
+A. Microsoft Teams, because it records conversations about code changes.B. Excel, because it can store different versions of a script in worksheets.C. SharePoint alone, because document storage automatically provides all software development workflows.D. Git, because it tracks changes and supports restoring previous versions of files.
+9. A development team is working on a shared repository. One developer is implementing a new reporting feature, but the team does not want unfinished changes to affect the main codebase. What should the developer do?
+A. Create a separate branch for the feature and merge it after review.B. Edit the main branch directly and commit whenever convenient.C. Create a second repository and permanently maintain two independent codebases.D. Delete the main branch temporarily while developing the feature.
+10. A developer has modified several files in a Git repository. The changes have not yet been included in a commit. Which statement best describes their current state?
+A. The changes have automatically been published to GitHub.B. The changes are permanently stored in the repository's commit history.C. The working directory contains modifications that have not yet been committed.D. The changes are already available to every collaborator through the remote repository.
+11. A data analyst has completed a set of modifications to a script and wants to record them as a meaningful point in the project's history. Which sequence correctly describes the usual Git workflow?
+A. Push, commit, stage and edit.B. Edit, stage, commit and push when necessary.C. Commit, edit, clone and merge.D. Merge, stage, pull and delete.
+12. A developer commits changes to a local Git repository. Another team member cannot see the new commit on GitHub. What is the most likely explanation?
+A. Git commits cannot be shared between developers.B. GitHub automatically rejects commits created outside its website.C. The developer must create another local repository before sharing the changes.D. The developer has not pushed the local commit to the remote repository.
+13. A team member wants to contribute to a project hosted on GitHub. The project already exists remotely, but the team member has no local copy. Which operation should they perform first?
+A. Clone the repository to create a local copy.B. Merge the remote repository into an empty working directory.C. Commit an empty file to the remote repository.D. Create a pull request without obtaining the project files.
+14. A developer wants to contribute changes to a repository maintained by another team. The repository owner expects contributions to be reviewed before they become part of the main codebase. Which approach best supports this workflow?
+A. Modify the owner's main branch without notifying them.B. Send a compressed folder of modified files without explaining the changes.C. Submit changes through an appropriate branch and pull request for review.D. Create a new repository and assume the owner will automatically receive the changes.
+15. A data science team experiences conflicts when two developers independently modify the same section of a shared script. What is the most appropriate way to resolve the situation?
+A. Delete both developers' commits and restart the project.B. Examine the conflicting changes, reconcile them and complete the merge.C. Allow Git to permanently discard all changes from one developer without review.D. Rename the repository so that Git can automatically combine the changes.
+16. A developer accidentally introduces a faulty change into a shared project. The team wants to undo the effect of the commit while preserving the existing project history. Which Git operation is most appropriate?
+A. Delete the entire repository and clone it again.B. Remove the .git directory to eliminate the commit history.C. Rename the faulty file and create a new repository.D. Use git revert to create a new commit that reverses the earlier change.
+17. A new analyst joins a software project and needs to understand its purpose, installation requirements, folder structure and basic usage before contributing. Which repository file would most directly provide this information?
+A. README.mdB. .gitignoreC. The Git configuration fileD. The commit object database
+18. A developer creates a GitHub repository containing a Python project. The repository should not track temporary cache files and locally generated environment folders. What is the most appropriate approach?
+A. Delete these files manually after every commit.B. Store the files in a separate Git branch.C. Define the relevant patterns in a .gitignore file.D. Disable Git tracking for the entire project directory.
+19. A developer needs to authenticate securely with GitHub from a terminal without repeatedly entering account credentials. Which approach is appropriate?
+A. Store the GitHub password in every project script.B. Configure SSH key authentication and register the public key with GitHub.C. Disable repository authentication for all users.D. Share a personal access token publicly with other developers.
+20. A data team maintains analytical scripts, documentation and configuration files in GitHub. A new analyst wants to demonstrate their contributions and make their work accessible to prospective employers. Which action would best support this objective?
+A. Upload screenshots of scripts without making the repository accessible.B. Maintain several unrelated repositories containing duplicate files.C. Keep all projects locally and avoid recording their development history.D. Maintain well-documented repositories with meaningful commits and clear project descriptions.
+SECTION B: APPLIED STATISTICS FUNDAMENTALS I — DESCRIPTIVE STATISTICS
+Questions 21–40 | Week 2
+21. A production supervisor reviews daily output from a processing facility. Most days have similar production levels, but one day records an exceptionally high output because of a temporary measurement error. The supervisor wants a measure of typical daily production that is less affected by this extreme observation. Which measure is most appropriate?
+A. Arithmetic mean, because it gives equal importance to all observations.B. Range, because it identifies the middle observation.C. Median, because it is relatively resistant to extreme observations.D. Variance, because it represents the central production level.
+22. An HR analyst is summarising the most frequently occurring job category in an organisation. The categories include engineers, technicians, administrators and operators. Which descriptive measure directly identifies the most frequently occurring category?
+A. ModeB. MedianC. Standard deviationD. Interquartile range
+23. Two oil production facilities have similar average daily output. However, the production figures at Facility A fluctuate considerably, while those at Facility B remain relatively stable. Which measure would best help compare their variability?
+A. MedianB. ModeC. Arithmetic meanD. Standard deviation
+24. A quality-control analyst wants to understand how the middle 50% of product measurements are distributed, without allowing unusually high or low values to dominate the assessment. Which measure is most appropriate?
+A. RangeB. Interquartile rangeC. Arithmetic meanD. Coefficient of variation
+25. A data analyst creates a histogram of daily equipment operating times. The distribution shows a long tail extending towards higher values. Which interpretation is most appropriate?
+A. The distribution is positively skewed.B. The distribution is negatively skewed.C. The distribution is necessarily symmetrical.D. The distribution must contain two distinct peaks.
+26. A financial analyst needs to compare the distribution of monthly expenditure across several departments. The departments have different numbers of observations, and the analyst wants to identify differences in central position, spread and potential outliers. Which visualisation is most appropriate?
+A. Pie chartB. Line chartC. BoxplotD. Stacked bar chart
+27. A retail analytics team wants to compare the total sales generated by different petrol stations during a particular month. The station names represent categories, while sales are numerical values. Which chart is most appropriate?
+A. HistogramB. ScatterplotC. BoxplotD. Bar chart
+28. An analyst wants to examine whether equipment operating temperature is associated with the rate of equipment failure. Both variables are numerical. Which visualisation would best support an initial assessment of their relationship?
+A. Pie chartB. ScatterplotC. Bar chartD. Frequency table
+29. A company records the number of customer complaints received each month over three years. Management wants to identify trends, seasonal patterns and changes over time. Which visualisation is most suitable?
+A. Line chartB. Pie chartC. BoxplotD. Histogram
+30. A researcher examines employee salaries and discovers that a small number of senior executives earn substantially more than the majority of employees. The salary distribution is strongly right-skewed. Which statement is most likely to be true?
+A. The mean must be lower than the median.B. The mean and median must be identical.C. The mean is likely to be greater than the median.D. The mode must be greater than the mean.
+31. A pipeline monitoring team identifies an unusually high pressure reading in its daily dataset. Before removing the observation, the analyst wants to determine whether it represents a genuine operational event or a recording error. What should the analyst do first?
+A. Delete the observation because it is outside the usual range.B. Replace it with the dataset mean.C. Remove all observations from the same day.D. Investigate the original measurement, operational records and data collection process.
+32. An analyst uses the interquartile range method to flag unusually high and low observations in a dataset. What is the primary purpose of this method?
+A. To replace missing values with the median.B. To identify observations that fall unusually far from the central 50% of the data.C. To determine whether two variables have a linear relationship.D. To calculate the probability that an observation belongs to a particular category.
+33. A company compares the variability of monthly sales across two branches. One branch has substantially higher average sales than the other. Management wants a measure of relative variability rather than absolute variability. Which measure is most appropriate?
+A. RangeB. VarianceC. Coefficient of variationD. Interquartile range
+34. A data analyst calculates the variance of a dataset containing equipment temperatures measured in degrees Celsius. A manager asks what the variance represents. Which explanation is most appropriate?
+A. It measures the average squared deviation of observations from their mean.B. It identifies the most frequently occurring temperature.C. It represents the difference between the highest and lowest temperatures.D. It gives the middle value after observations are arranged in order.
+35. An analyst is using Excel to calculate the variance of an entire population of equipment readings rather than a sample. Which function is appropriate?
+A. VAR.SB. STDEV.SC. AVERAGED. VAR.P
+36. An analyst is preparing a report using a dataset containing all registered employees in an organisation. The analyst wants to calculate the standard deviation of their recorded salaries as a population measure. Which Excel function is most appropriate?
+A. STDEV.SB. STDEV.PC. VAR.SD. MEDIAN
+37. A data analyst receives a dataset containing monthly production records. Some entries are blank because the relevant equipment was not reporting during certain periods. The analyst is instructed to calculate the average production using only recorded numerical values. Which Excel function is most appropriate?
+A. COUNTBLANKB. COUNTAC. AVERAGED. MAX
+38. A quality-control team wants to identify the first quartile, median and third quartile of a dataset in Excel. Which function is most suitable for calculating these percentile-based positions using the inclusive method?
+A. QUARTILE.INCB. RANK.EQC. MODE.SNGLD. COUNTIF
+39. An analyst creates a boxplot of equipment downtime across several facilities. One facility has several points beyond the upper whisker. What is the most appropriate interpretation?
+A. Every point beyond the whisker is necessarily a data-entry error.B. The facility must have a higher average downtime than every other facility.C. The boxplot proves that the equipment is operating outside regulatory limits.D. The points are potential outliers that require further investigation.
+40. A management team receives a statistical report containing averages and standard deviations but no information about the underlying data distribution. The team wants to avoid drawing misleading conclusions from the summary statistics. What should the analyst do?
+A. Replace all numerical summaries with percentages.B. Examine appropriate visualisations and distribution characteristics alongside the summary statistics.C. Remove all observations that differ from the mean.D. Report only the maximum and minimum values.
+SECTION C: APPLIED STATISTICS FUNDAMENTALS II — INFERENTIAL STATISTICS
+Questions 41–60 | Week 3
+41. A manufacturing company wants to estimate the average operating lifetime of all pumps in its facilities. Testing every pump would be expensive and disruptive. The analyst selects a subset of pumps for examination. What is the primary statistical reason for using this approach?
+A. A sample can provide information about a population while reducing the cost and effort of data collection.B. A sample guarantees that every observation will have the same value.C. Sampling eliminates all measurement errors.D. A sample automatically produces more accurate results than a complete population study.
+42. A pipeline monitoring system records daily pressure readings. The normal operating range is 95–105 psi, but a reading of 140 psi is recorded on one day. Before deciding how to handle this unusual observation, what should the analyst do first?
+A. Remove the reading because it falls outside the normal operating range.
+B. Replace the reading with the average pressure recorded on surrounding days.
+C. Investigate the operational events, maintenance records, sensor performance, and related variables for that date.
+D. Treat the reading as a data-entry error unless similar values appear on other days.
+43. An oil company wants to investigate employee satisfaction across its different operational locations. The researcher selects only employees who are available at the head office because they are easier to reach. Which limitation is most likely to affect the study?
+A. The sample automatically becomes a census.B. The sample may not adequately represent employees across all locations.C. The method guarantees equal selection probability for every employee.D. The sample eliminates the possibility of selection bias.
+44. A research team repeatedly selects random samples from a population and calculates the mean for each sample. The distribution of these sample means is used to understand how sample means vary across repeated sampling. What is this distribution called?
+A. Population frequency distributionB. Empirical distributionC. Conditional distributionD. Sampling distribution of the mean
+45. A company claims that a new maintenance procedure reduces average equipment downtime. An analyst wants to assess whether the available evidence supports this claim. Which statement represents the appropriate null hypothesis?
+A. The new procedure has no effect on average equipment downtime.B. The new procedure necessarily reduces average equipment downtime.C. The new procedure is more effective for every individual machine.D. The new procedure eliminates all equipment downtime.
+46. A researcher tests whether a new training programme improves employee productivity. The alternative hypothesis states that productivity increases after the programme. Which type of hypothesis test is most consistent with this research question?
+A. A two-tailed test that examines any possible difference.B. A test of equality between two population variances.C. A one-tailed test directed towards an increase.D. A test of independence between two categorical variables.
+47. An analyst obtains a p-value below the chosen significance level when testing whether a new process changes product quality. What is the appropriate statistical decision?
+A. Accept the alternative hypothesis as certainly true.B. Reject the null hypothesis because the evidence is statistically significant at the chosen level.C. Conclude that the process has no practical importance.D. Conclude that the probability of the null hypothesis being true equals the p-value.
+48. A research report states that a result is statistically significant at the 5% significance level. Which interpretation is most appropriate?
+A. There is a 5% probability that the alternative hypothesis is false.B. The observed effect must be large enough to matter operationally.C. The result has a 95% probability of being replicated exactly.D. The result provides sufficient evidence to reject the null hypothesis under the specified testing procedure at that significance level.
+49. A researcher reports a 95% confidence interval for the average pressure of a production system. Which interpretation best reflects the frequentist meaning of this interval?
+A. The interval estimation procedure would capture the true population parameter in approximately 95% of repeated samples under its assumptions.B. There is a 95% probability that the fixed population parameter changes between the interval's limits.C. Exactly 95% of individual pressure readings must fall within the interval.D. The sample mean has a 95% probability of being equal to the population mean.
+50. An analyst concludes that a new operating procedure has no statistically significant effect on production. However, the study used a very small sample. Which concern is most relevant?
+A. The study must have a Type I error.B. The study automatically proves that the two procedures are equivalent.C. The study may have insufficient statistical power to detect a genuine effect.D. The study cannot produce a confidence interval.
+51. A company introduces a new quality-control process. An analyst concludes that the process improves product quality when, in reality, it has no effect. Which type of statistical error has occurred?
+A. Type II errorB. Type I errorC. Sampling frame errorD. Measurement error
+52. A researcher fails to detect a genuine improvement in production efficiency because the sample provides insufficient evidence. Which type of statistical error does this represent?
+A. Type I errorB. Non-response errorC. Measurement errorD. Type II error
+53. A research team wants to determine whether the average production output of a facility differs from a specified historical benchmark. The population standard deviation is unknown, and the analysis uses a sample of observations under appropriate assumptions. Which statistical test is most appropriate?
+A. One-sample t-testB. Chi-square test of independenceC. Pearson correlation testD. One-way ANOVA
+54. An organisation measures the productivity of the same employees before and after introducing a training programme. The analyst wants to assess whether the average productivity changed. Which test is most appropriate?
+A. Independent-samples t-testB. One-sample t-testC. Paired-samples t-testD. Chi-square goodness-of-fit test
+55. A company compares average equipment performance between two independent facilities. The observations from one facility are not paired with those from the other. Which statistical procedure is most appropriate for comparing their means?
+A. Paired-samples t-testB. Independent-samples t-testC. One-sample t-testD. Pearson correlation
+56. An analyst wants to examine whether employee training hours are linearly associated with employee productivity. Both variables are measured numerically, and the assumptions for the analysis are considered reasonable. Which statistical measure is most appropriate?
+A. ModeB. Chi-square statisticC. Interquartile rangeD. Pearson correlation coefficient
+57. A study finds a strong positive correlation between the number of maintenance personnel assigned to a facility and the number of reported equipment faults. A manager concludes that assigning more personnel causes more equipment faults. What is the most appropriate response?
+A. Correlation alone does not establish causation; other factors or reverse relationships may explain the association.B. A positive correlation proves that one variable causes the other.C. The correlation should be interpreted as evidence that maintenance personnel are ineffective.D. The association must be ignored because both variables are numerical.
+58. A statistical analysis produces a very small p-value for the difference in average production between two facilities. However, the observed difference is negligible from an operational perspective. What should management conclude?
+A. The result is statistically insignificant because the difference is small.B. The result proves that the facilities have identical production processes.C. Statistical significance does not necessarily imply practical or operational importance.D. The p-value should be interpreted as the size of the production difference.
+59. An analyst compares the average performance of four independent production teams. The objective is to determine whether there is evidence that at least one team has a different population mean. Which test is most appropriate?
+A. Paired-samples t-testB. One-way analysis of variance (ANOVA)C. Pearson correlationD. One-sample proportion test
+60. A research team conducts several hypothesis tests while examining many possible relationships in a large operational dataset. The team reports only statistically significant findings. What is the most important methodological concern?
+A. Multiple testing can increase the likelihood of false-positive findings if not appropriately addressed.B. Conducting more tests automatically increases the accuracy of every conclusion.C. Reporting only significant results eliminates the possibility of bias.D. Multiple testing makes confidence intervals unnecessary.
+PART 2 — PROFESSIONAL MOCK EXAMINATION
+Coverage: Weeks 4–5 | Total Questions: 60 
+SECTION A: RDBMS CONCEPTS AND FUNDAMENTAL SQL QUERYING
+Questions 61–90 | Week 4
+61. An oil and gas company maintains separate spreadsheets containing information about its employees, equipment and production activities. Management wants to move these records into a relational database to improve consistency and support queries across departments. Which characteristic makes an RDBMS particularly suitable?
+A. It stores all information as independent documents without relationships.B. It organises data into related tables and supports relationships through keys.C. It requires every record to be stored in a separate database.D. It automatically eliminates the need for data validation.
+62. A database contains an employees table with an employee_id column. Management requires every employee to have a unique identifier that cannot be missing. Which database constraint is most appropriate?
+A. FOREIGN KEYB. CHECKC. DEFAULTD. PRIMARY KEY
+63. A company maintains an equipment table and a maintenance_records table. Each maintenance record must refer to an existing equipment item. Which database mechanism best enforces this requirement?
+A. A foreign key in maintenance_records referencing the equipment table.B. A unique constraint on the maintenance description.C. An index on the maintenance date without a relationship constraint.D. A default value for the equipment description.
+64. A database designer notices that employee department names are repeatedly stored in every employee record. When a department is renamed, several records must be updated, creating a risk of inconsistent information. Which design improvement is most appropriate?
+A. Store multiple department names in one employee field.B. Duplicate the employee table for every department.C. Create a separate department table and reference it through a foreign key.D. Remove the department information from the database entirely.
+65. A database table stores several telephone numbers in a single column for each employee. This makes searching and updating individual telephone numbers difficult. Which normalisation principle is most directly violated?
+A. Third Normal Form (3NF)B. First Normal Form (1NF)C. Second Normal Form (2NF)D. Referential integrity
+66. A sales database contains a table with a composite primary key consisting of order_id and product_id. The product_name depends only on product_id, rather than the entire composite key. Which normalisation issue does this represent?
+A. A violation of First Normal Form.B. A violation of Third Normal Form due to a transitive dependency.C. A violation of referential integrity.D. A partial dependency that violates Second Normal Form.
+67. A database table contains employee_id, department_id and department_location. The department location depends on the department rather than directly on the employee. Which design problem should be addressed to improve the table's normalisation?
+A. Transitive dependency associated with Third Normal Form.B. Repeated values that necessarily violate First Normal Form.C. Missing primary keys in every employee record.D. A many-to-many relationship between employees and departments.
+68. A database administrator creates a new PostgreSQL database and needs to organise related tables under a logical namespace. Which database object should be used?
+A. ViewB. IndexC. SchemaD. Transaction
+69. A data analyst connects to PostgreSQL using pgAdmin. The analyst wants to inspect database objects, execute SQL statements and review query results. Which description best explains pgAdmin's role?
+A. It is the SQL language used to define database relationships.B. It is a graphical administration and development interface for PostgreSQL.C. It is a database engine that replaces PostgreSQL.D. It is a programming language used exclusively for data visualisation.
+70. A production analyst needs to retrieve the well_id, production_date and daily_output columns from a table named daily_production. Which SQL statement is most appropriate?
+A. GET well_id, production_date, daily_output FROM daily_production;B. SELECT * FROM daily_production WHERE well_id, production_date, daily_output;C. DISPLAY well_id, production_date, daily_output IN daily_production;D. SELECT well_id, production_date, daily_output FROM daily_production;
+71. An analyst wants to retrieve only production records where daily output exceeds a specified operational threshold. Which SQL clause should be used to restrict the returned records?
+A. WHEREB. ORDER BYC. GROUP BYD. SELECT
+72. A maintenance analyst wants to retrieve equipment records where the equipment status is either Active or Under Maintenance. Which condition is most appropriate?
+A. WHERE status = 'Active' AND status = 'Under Maintenance'B. WHERE status LIKE 'Active'C. WHERE status IN ('Active', 'Under Maintenance')D. WHERE status IS NOT NULL
+73. A company wants to identify employee records belonging to either the Engineering department or the Operations department, provided that the employees are currently active. Which condition correctly expresses both requirements?
+A. WHERE department = 'Engineering' AND department = 'Operations' AND status = 'Active'B. WHERE (department = 'Engineering' OR department = 'Operations') AND status = 'Active'C. WHERE department IN ('Engineering', 'Operations') OR status = 'Active'D. WHERE department = 'Engineering' OR department = 'Operations' AND status = 'Inactive'
+74. An analyst wants to retrieve customer records whose names begin with the letters Ade. Which SQL condition is most appropriate?
+A. WHERE customer_name = '%Ade'B. WHERE customer_name LIKE '%Ade%'C. WHERE customer_name IN ('Ade')D. WHERE customer_name LIKE 'Ade%'
+75. A production manager wants to view the ten wells with the highest recorded production output. Which SQL approach is most appropriate?
+A. Sort production output in descending order and restrict the result to ten records.B. Sort production output in ascending order and restrict the result to ten records.C. Group the records by well and remove the production output column.D. Retrieve all records and manually select the ten highest values.
+76. A database contains daily production records for several wells. Management wants to know how many production records have been stored, regardless of whether some production values are missing. Which expression is most appropriate?
+A. COUNT(production_value)B. SUM(production_value)C. COUNT(*)D. AVG(production_value)
+77. A data analyst wants to calculate the average recorded daily output of a production facility. Some production values are NULL because of incomplete reporting. Which aggregate function is most appropriate?
+A. COUNT(*)B. AVG(daily_output)C. SUM(daily_output)D. MAX(daily_output)
+78. A financial analyst wants to determine the total expenditure recorded against each department. The database contains a department column and an expenditure column. Which SQL approach is most appropriate?
+A. Use ORDER BY department without an aggregate function.B. Use WHERE department to calculate the total.C. Use DISTINCT department to calculate expenditure.D. Group records by department and apply SUM(expenditure).
+79. A production analyst wants to identify wells whose total monthly production exceeds a management-defined threshold. The analysis requires aggregating production records for each well before applying the threshold. Which SQL clause should be used to filter the grouped results?
+A. HAVINGB. WHEREC. ORDER BYD. LIMIT
+80. A database contains multiple daily production records for each well. An analyst wants to retrieve only wells that have at least one production record. Which approach is most appropriate?
+A. SELECT DISTINCT daily_output FROM wells;B. SELECT COUNT(*) FROM wells WHERE daily_output;C. Use an appropriate join or existence condition between the wells and production records.D. Use ORDER BY well_id to remove wells without production records.
+81. A company wants to identify all distinct equipment statuses currently recorded in its asset inventory. Which SQL feature is most appropriate?
+A. GROUP BY with no selected status column.B. DISTINCT applied to the status column.C. LIMIT applied to the status column.D. COUNT applied to the status column.
+82. A production analyst writes a query that returns all records from a table, even though only five columns are needed for a report. The query also retrieves unnecessary sensitive employee information. What is the best improvement?
+A. Replace the SELECT statement with DELETE.B. Add more joins to reduce the number of columns.C. Retrieve all columns and remove unnecessary ones in Excel.D. Explicitly select only the required columns.
+83. A database contains a daily_production table with several years of records. An analyst needs records for a particular production year. Which approach is most appropriate?
+A. Apply a date-range condition in the WHERE clause using the relevant date column.B. Use GROUP BY to select the production year.C. Use DISTINCT to remove all other years.D. Apply ORDER BY and assume the required year will appear first.
+84. A query uses the following condition:
+WHERE production_date BETWEEN '2026-01-01' AND '2026-01-31'
+The analyst expects to retrieve all records within January 2026 from a date-only column. Which statement is correct?
+A. BETWEEN excludes both boundary dates.B. BETWEEN retrieves only records from January 1.C. BETWEEN includes both boundary values.D. BETWEEN can only be used with numerical columns.
+85. A database administrator wants to ensure that equipment serial numbers cannot be duplicated in the asset inventory, although they are not being used as the table's primary key. Which constraint is most appropriate?
+A. DEFAULTB. UNIQUEC. CHECKD. NOT NULL alone
+86. A company wants to prevent employees from being entered into the database without a valid employment status. Which constraint ensures that the status field cannot contain NULL?
+A. UNIQUEB. FOREIGN KEYC. DEFAULTD. NOT NULL
+87. A data analyst wants to retrieve the total number of employees in each department, including departments with no employees. The database contains separate departments and employees tables. Which approach is most appropriate?
+A. Start from the departments table, use a LEFT JOIN to employees and aggregate appropriately.B. Start from employees and use an INNER JOIN to departments.C. Use DISTINCT on the employee name column.D. Use ORDER BY on the department name.
+88. A database query uses GROUP BY department but selects both department and employee_name without aggregating employee_name. In PostgreSQL, the query fails because employee names are not grouped or aggregated. What is the most appropriate correction if the objective is to report employee counts per department?
+A. Add ORDER BY employee_name.B. Replace GROUP BY with LIMIT.C. Select department and COUNT(*) only, grouping by department.D. Add DISTINCT to every selected column.
+89. A reporting analyst needs to return the highest production value recorded in a table. Which SQL aggregate function should be used?
+A. AVGB. MAXC. MIND. COUNT
+90. An analyst is developing a query that will be used repeatedly by different departments. The query should be understandable, maintainable and efficient. Which practice is most appropriate?
+A. Use SELECT * in every query to avoid changing column lists.B. Write all conditions in one long, unstructured expression.C. Duplicate the same query several times with minor changes.D. Use explicit columns, meaningful aliases and clear filtering and aggregation logic.
+SECTION B: RELATIONAL JOINS AND NULL VALUE HANDLING
+Questions 91–105 | Week 5
+91. An oil company maintains an equipment table and a maintenance_records table. Management wants a report containing only equipment items that have at least one matching maintenance record. Which join is most appropriate?
+A. FULL OUTER JOINB. LEFT JOINC. INNER JOIND. CROSS JOIN
+92. A maintenance manager wants a list of all registered equipment, including equipment that has never undergone maintenance. Where matching maintenance records exist, their details should also appear. Which join is most appropriate?
+A. LEFT JOIN, with equipment as the left table.B. INNER JOIN, with maintenance records as the left table.C. CROSS JOIN, with equipment as the left table.D. RIGHT JOIN, without considering table order.
+93. A database contains employee records and department records. Management wants all departments listed, including those that currently have no employees. Which approach is most appropriate?
+A. INNER JOIN employees to departments.B. CROSS JOIN departments to employees.C. LEFT JOIN employees to departments with employees as the left table.D. LEFT JOIN departments to employees with departments as the left table.
+94. A reporting team wants a consolidated list of all equipment and maintenance records, including equipment without maintenance records and maintenance records that do not currently match an equipment entry. Which join best meets this requirement?
+A. INNER JOINB. FULL OUTER JOINC. CROSS JOIND. SELF JOIN
+95. An analyst joins daily_production and well_information using well_id. The result contains fewer production records than expected. Investigation shows that some production records have no corresponding well entry. Which join behaviour most likely explains the missing records?
+A. INNER JOIN excludes records without matching keys in both tables.B. LEFT JOIN always excludes unmatched records from the left table.C. FULL OUTER JOIN excludes unmatched records from both tables.D. CROSS JOIN removes records with NULL values.
+96. A data analyst wants to identify equipment items that have no corresponding maintenance record. Which query approach is most appropriate?
+A. Use INNER JOIN and filter for non-NULL maintenance dates.B. Use CROSS JOIN and group by equipment ID.C. Use LEFT JOIN from equipment to maintenance records and filter for NULL values in a non-nullable maintenance key.D. Use RIGHT JOIN and filter for non-NULL equipment IDs.
+97. A company has a customers table and an orders table. A customer may place several orders, but each order belongs to one customer. What type of relationship normally exists between these tables?
+A. One-to-oneB. Many-to-manyC. One-to-zero onlyD. One-to-many
+98. A database contains students and courses. Each student can register for several courses, and each course can have several students. Which database design is most appropriate?
+A. Store all course names in a single student column.B. Create a junction table linking students and courses through their respective keys.C. Duplicate the student table for every course.D. Remove the course identifiers and rely on student names.
+99. A reporting analyst combines employee and department information. Some employees have no assigned department, but management still wants those employees included in the report. Which approach is most appropriate?
+A. Use a LEFT JOIN from employees to departments.B. Use an INNER JOIN from employees to departments.C. Use a CROSS JOIN between employees and departments.D. Use a RIGHT JOIN that removes unmatched employees.
+100. A database query returns NULL in the maintenance_date column for equipment that has no recorded maintenance event. The reporting team wants the output to display Not Recorded instead. Which SQL function is most appropriate?
+A. COUNTB. AVGC. COALESCED. SUM
+101. A production analyst uses COALESCE(production_volume, 0) in a report. What does this expression do?
+A. Removes all records with missing production volume.B. Replaces NULL production-volume values with zero in the returned expression.C. Converts every production volume to a NULL value.D. Calculates the average production volume.
+102. A database contains employee records with missing salary information. An analyst wants to count the number of employees whose salary has been recorded. Which expression is most appropriate?
+A. COUNT(*)B. SUM(salary)C. COUNT(DISTINCT employee_id)D. COUNT(salary)
+103. An analyst uses a LEFT JOIN to combine wells with their production records. The analyst then places a condition on the production table in the WHERE clause requiring a production date within a particular month. Some wells without production records disappear from the result. Why?
+A. The WHERE condition filters out rows where the production date is NULL, effectively removing unmatched wells.B. LEFT JOIN automatically converts all missing dates into the current date.C. PostgreSQL does not support LEFT JOIN with date columns.D. The join has changed into a FULL OUTER JOIN.
+104. A reporting analyst wants to retain all wells while including only production records from January 2026 when available. Which approach best preserves wells without matching January production records?
+A. Use INNER JOIN and filter for January in the WHERE clause.B. Use CROSS JOIN and filter production dates afterwards.C. Place the January condition in the LEFT JOIN's ON clause while retaining wells as the left table.D. Use RIGHT JOIN and remove all NULL production dates.
+105. A database contains two tables with a column named status. A query selects status without specifying which table it belongs to, resulting in an ambiguous-column error. What should the analyst do?
+A. Rename both tables before every query.B. Qualify the column with its table name or alias.C. Remove the status column from both tables.D. Replace the column with SELECT *.
+SECTION C: SUBQUERIES, COMMON TABLE EXPRESSIONS AND WINDOW FUNCTIONS
+Questions 106–120 | Week 5
+106. A production analyst wants to identify wells whose daily production exceeds the overall average daily production recorded in the database. The average must be calculated from the same dataset. Which SQL approach is most appropriate?
+A. Use a subquery to calculate the overall average and compare each well's production against it.B. Use GROUP BY without an aggregate function.C. Use ORDER BY to identify values above the average.D. Use COALESCE to calculate the average automatically.
+107. A data engineer writes a complex SQL query containing several stages of filtering, aggregation and joining. The query is difficult to read and maintain. Which SQL feature can improve its structure by defining named intermediate result sets?
+A. DISTINCTB. LIMITC. Common Table Expressions (CTEs) using WITHD. ORDER BY
+108. An analyst defines a CTE named monthly_production to summarise daily production by month. The analyst then wants to use the result in the main query. Which statement is correct?
+A. A CTE must always be permanently stored as a database table.B. A CTE can only be used with INSERT statements.C. A CTE automatically creates an index on every selected column.D. A CTE can be referenced by the statement in which it is defined.
+109. A company wants to identify the highest-producing well in each field. Several wells may have identical production values. Management wants tied wells to receive the same ranking, with subsequent ranking positions reflecting the tie. Which window function is most appropriate?
+A. ROW_NUMBERB. RANKC. LAGD. LEAD
+110. A reporting analyst wants to assign a unique sequential position to every well within each production field, even when two wells have identical production values. Which window function should be used?
+A. RANKB. AVGC. ROW_NUMBERD. COUNT
+111. An analyst needs to compare each day's production with the previous day's production for the same well. Which window function is most appropriate?
+A. LAGB. LEADC. ROW_NUMBERD. RANK
+112. A production manager wants to compare the current month's production with the following month's production to identify expected changes. Which window function is most appropriate?
+A. LAGB. RANKC. ROW_NUMBERD. LEAD
+113. An analyst calculates production rankings across all wells but notices that the ranking does not restart for each production field. The requirement is to rank wells separately within each field. Which window clause should be added?
+A. ORDER BY onlyB. PARTITION BY field_idC. GROUP BY field_id onlyD. LIMIT field_id
+114. A data engineer writes a query to calculate monthly production rankings. The query uses RANK() but does not specify how records should be ordered within each partition. What is the most important correction?
+A. Add DISTINCT to the SELECT statement.B. Replace PARTITION BY with GROUP BY.C. Include an ORDER BY clause inside the window definition to establish the ranking order.D. Add LIMIT to the window function.
+115. An analyst wants to calculate a three-month moving average of production for each well. The result should reflect the current month and the two preceding months. Which approach is most appropriate?
+A. Use an AVG window function with an appropriate partition, chronological ordering and a three-row window frame.B. Use COUNT without ordering the months.C. Use RANK to calculate the moving average.D. Use GROUP BY well_id without retaining the monthly sequence.
+116. A company prepares a monthly rig performance report. It first needs to summarise daily operational records into monthly values before calculating rankings and rolling averages. Why is this order important?
+A. Window functions cannot be used with monthly records.B. Monthly aggregation automatically removes every missing value.C. Ranking must always be performed before aggregation.D. The window calculations must operate at the intended monthly level rather than on individual daily records.
+117. A data analyst wants to identify the second-highest production value in a table. Multiple wells may have the same production value, and tied values should share the same rank. Which approach is most appropriate?
+A. Use ROW_NUMBER without ordering.B. Use RANK ordered by production in descending order, then filter for rank 2.C. Use LAG without partitioning.D. Use COUNT to identify the second-highest value.
+118. An analyst uses a window function to calculate the previous day's production for each well. The query produces incorrect comparisons because records from different wells are being compared. What is the most appropriate correction?
+A. Remove the ORDER BY clause.B. Replace LAG with COUNT.C. Partition the window by well identifier and order by production date.D. Group all wells into a single category.
+119. A data engineer is developing a report that identifies the top-performing rigs each month. The report should retain all monthly rig records while displaying each rig's ranking within its month. Which approach is most appropriate?
+A. Use a window ranking function partitioned by month, rather than filtering the dataset to one record per month.B. Use GROUP BY month and remove the rig identifier.C. Use DISTINCT on the month column.D. Use LIMIT to retain only one rig from the entire dataset.
+120. A database analyst is asked to produce an optimised monthly rig performance report using CTEs and window functions. The report must include monthly production, rolling averages and uptime rankings. Which development approach is most appropriate?
+A. Calculate every metric independently in Excel and manually combine the results.B. Use a single SELECT * statement and sort the output manually.C. Use nested queries without defining the reporting grain or ranking criteria.D. Build a clear SQL workflow that aggregates records at the monthly rig level, applies appropriate window calculations and selects only the required report fields.
+PART 3 — PROFESSIONAL MOCK EXAMINATION
+Coverage: Weeks 6–7 | Total Questions: 60 
+SECTION A: DATA ETHICS, PRIVACY AND GOVERNANCE
+Questions 121–150 | Week 6
+121. An oil and gas company collects employee information for payroll processing. Several months later, a department manager requests access to the same information for an unrelated marketing campaign. The company has not established a lawful basis for this additional use. Which data protection principle is most relevant?
+A. Data portabilityB. Purpose limitationC. Data accuracyD. Storage limitation
+122. A customer service company collects customers' names, contact details, addresses and employment histories when only names and contact details are necessary to provide its service. Which data protection principle should guide the company in reviewing its collection practices?
+A. AccountabilityB. Data portabilityC. Storage limitationD. Data minimisation
+123. A company retains former employees' personal records indefinitely, even though the records are no longer needed for any legitimate business or legal purpose. Which principle is most directly implicated?
+A. Storage limitationB. Purpose limitationC. Data accuracyD. Transparency
+124. A company outsources the processing of employee information to an external payroll provider. The company determines why and how the personal data should be processed, while the provider processes it on the company's instructions. Under the GDPR framework, how are the parties generally classified?
+A. Both are data controllers.B. The payroll provider is the controller, while the company is the processor.C. The company is the controller, while the payroll provider is the processor.D. Both are independent data subjects.
+125. An organisation discovers that an external service provider is processing customer information for purposes outside the instructions agreed with the organisation. What should the organisation do first?
+A. Ignore the issue because the information is held by an external provider.B. Investigate the processing, enforce contractual and governance requirements, and assess the need for further action.C. Immediately publish all affected customer records to demonstrate transparency.D. Transfer responsibility for all data protection obligations permanently to the service provider.
+126. A Nigerian financial services company processes personal information belonging to customers in Nigeria. Its compliance team wants to identify the principal Nigerian statutory framework governing personal data protection. Which instrument should it primarily consider?
+A. Companies and Allied Matters Act alone.B. Nigerian Communications Act alone.C. NDPR 2019 as the current principal statute, without considering subsequent legislation.D. Nigeria Data Protection Act 2023.
+127. A multinational company processes personal data belonging to individuals in the European Union while offering services to them, even though the company has no physical office in the EU. Which statement about GDPR applicability is most accurate?
+A. GDPR can apply to the company's processing because of the nature and location of the individuals and services involved.B. GDPR cannot apply because the company is incorporated outside Europe.C. GDPR applies only to companies with European shareholders.D. GDPR applies only when the data is physically stored within the EU.
+128. An HR department stores employee names, home addresses, telephone numbers, identification numbers and salary details in a shared spreadsheet. A data analyst is asked to prepare a dataset for an internal workforce planning exercise. Which approach is most appropriate?
+A. Publish the original spreadsheet because employees already work for the organisation.B. Remove the spreadsheet's filename but retain every personal identifier.C. Restrict access and remove or appropriately protect personal fields that are unnecessary for the analysis.D. Send the spreadsheet to every department so that they can independently determine which fields are sensitive.
+129. A data analyst prepares a customer dataset for a demonstration. The analyst replaces actual customer names with randomly generated identifiers but retains a separate file linking those identifiers to the real customers. How should this process be described?
+A. Complete anonymisationB. PseudonymisationC. Data aggregationD. Data deletion
+130. A company wants to release a dataset for research without retaining any reasonably available means of identifying the individuals represented. Which approach most closely describes the intended outcome?
+A. EncryptionB. Data replicationC. PseudonymisationD. Anonymisation
+131. A healthcare company wants to provide an external analyst with a dataset for statistical reporting. The analyst needs age groups and service categories but does not need names, telephone numbers or identification numbers. What is the most appropriate approach?
+A. Remove unnecessary direct identifiers and assess whether the remaining information could still identify individuals.B. Retain all identifiers but instruct the analyst not to inspect them.C. Replace names with employee numbers while publishing the identification key alongside the data.D. Provide unrestricted access and rely on the analyst's professional judgement.
+132. A company stores sensitive employee records in a database. Different employees require different levels of access depending on their job responsibilities. Which access-control approach is most appropriate?
+A. Give every employee administrator privileges to avoid access delays.B. Allow access based solely on an employee's length of service.C. Implement Role-Based Access Control (RBAC) and assign permissions according to job responsibilities.D. Use one shared account for all departments.
+133. A data engineer has administrator access to an operational database but only needs permission to view production records for a reporting task. Which security principle should guide the access decision?
+A. Open accessB. Least privilegeC. Maximum availabilityD. Data portability
+134. An organisation wants to know which systems generated a particular production dataset, how the data was transformed and which reports depend on it. Which data governance capability is most relevant?
+A. Data maskingB. Data encryptionC. Data compressionD. Data lineage
+135. A company discovers that several departments use different definitions of equipment downtime. As a result, management reports produce inconsistent performance figures. Which governance intervention would best address the underlying problem?
+A. Establish standard data definitions, ownership and documentation.B. Allow each department to retain its own definition without explanation.C. Remove all downtime fields from the reporting system.D. Replace the database with individual spreadsheets.
+136. An organisation experiences a data breach involving unauthorised access to customer information. Management wants to understand whether the organisation has appropriate governance arrangements. Which evidence would be most useful?
+A. The number of computers owned by the organisation.B. The number of employees who use email daily.C. Documented access controls, incident response procedures, risk assessments and accountability arrangements.D. The organisation's social media engagement statistics.
+137. An employee receives an email requesting a spreadsheet containing customer identification details. The sender claims to be a senior manager, but the request is unusual and the sender's identity has not been verified. What should the employee do?
+A. Send the spreadsheet immediately because the request appears urgent.B. Verify the request through an approved channel and follow the organisation's data-sharing procedures.C. Forward the spreadsheet to other employees for confirmation.D. Upload the spreadsheet to a public file-sharing service.
+138. A data protection officer receives a request from an individual asking to know what personal information an organisation holds about them. Which data subject right is most directly relevant?
+A. Right to objectB. Right to erasureC. Right to data portabilityD. Right of access
+139. An organisation discovers that an employee's address is incorrect in its HR database. The employee provides verified updated information and requests correction. Which data protection principle or right is most relevant?
+A. Accuracy and the right to rectificationB. Storage limitation and the right to portabilityC. Purpose limitation and the right to objectD. Confidentiality and the right to restrict processing
+140. A company obtains customer consent for a specific marketing activity. The customer later withdraws that consent. What should the company do where consent is the applicable lawful basis and no alternative lawful basis applies?
+A. Continue processing because consent was previously obtained.B. Transfer the customer's information to another marketing company.C. Stop the processing that depends on the withdrawn consent, subject to applicable legal requirements.D. Delete all company records, including records required by law.
+141. A data governance team is reviewing an HR dataset before granting access to an external consultant. The consultant needs to analyse employee distribution by department and job category but does not require individual identities. Which approach best follows data minimisation?
+A. Provide all employee records because the consultant has signed a confidentiality agreement.B. Provide only the fields and level of detail necessary for the agreed analysis.C. Provide employee names but remove department information.D. Provide unrestricted access and ask the consultant to ignore unnecessary columns.
+142. An oil company collects equipment sensor data continuously. The data includes machine identifiers, operating temperatures, pressure readings and timestamps. Management wants to establish who is responsible for maintaining the dataset's quality and defining its approved use. Which governance practice is most appropriate?
+A. Allow every analyst to determine the dataset's meaning independently.B. Transfer all responsibility to the database software.C. Store the data indefinitely without documentation.D. Assign data ownership or stewardship responsibilities and establish quality and usage standards.
+143. A company uses historical equipment maintenance records to train a predictive maintenance model. However, some facilities have historically received more frequent inspections than others. The model subsequently predicts more failures at those facilities. What is the most likely concern?
+A. Historical reporting and inspection patterns may introduce bias into the training data.B. The model must be unbiased because it uses historical operational records.C. More frequent inspections always indicate higher equipment reliability.D. The model's predictions are automatically accurate because the dataset is large.
+144. A predictive maintenance model consistently identifies equipment from one facility as high-risk, even though subsequent engineering inspections do not support those predictions. The facility historically had more complete maintenance reporting than other locations. What should the data science team investigate?
+A. Whether the facility has the largest number of employees.B. Whether the model can be made more complex without reviewing the data.C. Whether differences in historical data collection and reporting have influenced the model.D. Whether all records from the facility should be deleted immediately.
+145. A company wants to reduce algorithmic bias in a predictive maintenance system before deployment. Which approach is most appropriate?
+A. Train the model using only records from the facility with the highest number of inspections.B. Examine data representativeness, evaluate performance across relevant facilities and investigate systematic prediction differences.C. Remove all variables associated with equipment location without assessing their operational relevance.D. Deploy the model immediately and investigate bias only if customers complain.
+146. A data analyst is preparing a report using employee records. The analyst does not need to reveal individual identities, but the report will be shared with senior management. Which practice best supports privacy protection?
+A. Include full employee identifiers in every chart.B. Share the original HR database instead of a report.C. Remove only the column headings while retaining all individual information.D. Present aggregated results and apply appropriate disclosure controls.
+147. An organisation wants to protect sensitive information displayed in a customer support application. Employees should see only the last four digits of customers' identification numbers unless full access is specifically authorised. Which control is most appropriate?
+A. Data maskingB. Data replicationC. Data lineageD. Data normalisation
+148. An employee transfers from the finance department to a role in operations. The employee's previous system permissions remain active, giving them access to confidential financial records that are no longer required. What should the organisation do?
+A. Retain the permissions because the employee is still employed.B. Create a second account with the same permissions.C. Review and update access permissions to reflect the employee's current responsibilities.D. Disable access controls for all employees.
+149. A company discovers that an unauthorised user has accessed a database containing customer personal information. What should the organisation's incident response team prioritise?
+A. Delete all evidence of the incident before management becomes aware.B. Contain the incident, investigate its scope, preserve relevant evidence and assess applicable notification obligations.C. Continue normal operations without examining the access logs.D. Publish the affected database to establish transparency.
+150. An energy company wants to strengthen its data governance framework following a significant data breach in the industry. Which approach is most comprehensive?
+A. Purchase additional storage capacity without changing existing processes.B. Require employees to sign confidentiality agreements but retain unrestricted access.C. Focus exclusively on installing antivirus software.D. Establish accountability, data classification, access controls, privacy procedures, monitoring and incident response arrangements.
+SECTION B: OIL AND GAS DATA USE CASES AND INDUSTRY KNOWLEDGE
+Questions 151–170 | Week 7
+151. An exploration company acquires seismic survey data from several geographical locations. The datasets are extremely large and contain complex wave-based information used to interpret subsurface geological structures. Which oil and gas segment primarily uses this type of data?
+A. UpstreamB. MidstreamC. DownstreamD. Retail distribution
+152. A drilling team monitors pressure, temperature, vibration and other measurements generated by drilling equipment. The data is collected continuously to support operational monitoring and decision-making. What is the most appropriate description of these records?
+A. Retail sales transactionsB. Financial accounting recordsC. Drilling telemetryD. Refinery product invoices
+153. An oil company installs sensors on production equipment to continuously capture operating conditions. The sensors transmit readings to systems where engineers can monitor equipment performance. Which technology category best describes this arrangement?
+A. Enterprise resource planningB. Internet of Things (IoT)C. Desktop publishingD. Customer relationship management
+154. A seismic interpretation team stores large volumes of raw survey files before geoscientists process and analyse them. The files include complex formats that cannot be efficiently represented as conventional relational tables. Which storage architecture is most suitable?
+A. A spreadsheet with separate worksheets for every seismic file.B. A relational database that requires every file to be converted into fixed rows and columns before storage.C. A document editor used to embed all survey records into reports.D. A data lake capable of retaining large volumes of raw data in different formats.
+155. A drilling supervisor wants to monitor equipment conditions as drilling progresses. The team needs timely readings to identify abnormal operating conditions and respond to potential equipment problems. Which data source is most relevant?
+A. Drilling telemetry and equipment sensor readings.B. Annual corporate financial statements.C. Retail petrol station customer surveys.D. Historical refinery marketing reports.
+156. A pipeline operator monitors pressure, flow rates, valve positions and other operational measurements from geographically distributed pipeline facilities. Which system is most directly associated with collecting and monitoring this operational data?
+A. Human Resource Information SystemB. Customer Relationship Management SystemC. Supervisory Control and Data Acquisition (SCADA)D. Learning Management System
+157. A midstream company wants to identify abnormal pressure changes along a pipeline network before they develop into major operational problems. Which data would be most useful for this purpose?
+A. Employee attendance records.B. Real-time pipeline pressure and flow-rate measurements.C. Retail fuel purchase histories.D. Annual refinery marketing expenditure.
+158. A pipeline logistics company needs to determine efficient transportation routes for moving crude oil between facilities while considering distance, capacity and operational constraints. Which analytical application is most relevant?
+A. Seismic interpretationB. Employee performance appraisalC. Retail customer segmentationD. Logistics routing and optimisation
+159. A company wants to monitor the volume of crude oil moving through a pipeline and compare actual flow against expected operational levels. Which variable is most directly relevant?
+A. Flow rateB. Employee turnoverC. Customer satisfactionD. Refinery advertising expenditure
+160. A refinery records information about crude input, operating conditions and the quantities of different refined products generated. Management wants to assess how efficiently the refinery converts crude input into saleable products. Which analytical area is most relevant?
+A. Seismic data interpretationB. Pipeline route optimisationC. Refinery yield optimisationD. Employee payroll analysis
+161. A refinery experiences variations in the quantity of usable products obtained from similar crude input under different operating conditions. Engineers want to understand how process settings influence product output. Which data combination would be most useful?
+A. Retail station sales and customer addresses only.B. Crude input characteristics, process operating conditions and refined product output.C. Employee attendance and salary records.D. Pipeline route maps without production information.
+162. A petroleum marketing company operates several retail stations. Management wants to identify stations with declining sales and understand how sales vary across locations and time periods. Which dataset is most appropriate?
+A. Seismic survey recordsB. Drilling vibration recordsC. Pipeline pressure readingsD. Retail station sales transactions
+163. A retail fuel company wants to forecast demand at individual stations to improve stock replenishment decisions. Which combination of data is most relevant?
+A. Historical station sales, transaction dates and relevant demand-related information.B. Seismic wave measurements and geological interpretations.C. Drilling equipment vibration and pressure readings.D. Employee training records and maintenance schedules alone.
+164. An oil and gas organisation wants to classify its data sources according to operational segments. Which classification is most appropriate?
+A. Seismic data—midstream; SCADA—downstream; retail sales—upstream.B. Seismic data—downstream; SCADA—upstream; retail sales—midstream.C. Seismic and drilling data—upstream; pipeline SCADA—midstream; refinery and retail sales data—downstream.D. Seismic data—upstream; retail sales—midstream; drilling telemetry—downstream.
+165. A company receives millions of sensor readings from production facilities. The readings include timestamps, equipment identifiers and operational measurements. Management wants to use the data to monitor equipment performance and detect abnormal behaviour. What is the most appropriate first step?
+A. Delete records that appear different from the average.B. Establish data collection, quality checks and appropriate monitoring processes before analysis.C. Convert all sensor readings into employee records.D. Aggregate all readings into a single value without retaining equipment or time information.
+166. An upstream operator wants to investigate why production from a particular well has declined over time. Which combination of information would be most useful?
+A. Retail station sales and customer loyalty records.B. Corporate recruitment records and payroll data.C. Marketing expenditure and refinery product prices alone.D. Well production history, drilling or operating conditions and relevant equipment measurements.
+167. A midstream operator observes a difference between the volume of oil entering a pipeline segment and the volume recorded at its exit. Management wants to investigate possible operational causes. Which information should be examined first?
+A. Relevant inlet and outlet flow measurements, timestamps, measurement quality and pipeline operating conditions.B. Retail station employee attendance records.C. Refinery advertising campaigns.D. Historical customer complaints unrelated to pipeline operations.
+168. A refinery manager wants to investigate why a particular refined product's output has decreased despite similar crude input volumes. Which information is most relevant?
+A. Retail station customer addresses alone.B. Seismic survey images from unrelated exploration locations.C. Refinery operating conditions, process measurements and product yield records.D. Employee social media activity.
+169. An oil company wants to build an integrated operational reporting environment using data from upstream, midstream and downstream activities. Which approach is most appropriate?
+A. Maintain isolated spreadsheets and manually combine them every year.B. Establish appropriate data integration, standard definitions and governance across the different operational systems.C. Force every operational department to use the same raw data format regardless of its requirements.D. Discard all historical records before creating the reporting environment.
+170. A data analyst is asked to prepare an operational report showing drilling performance, pipeline transportation and refinery output. Which consideration is most important when selecting the source data?
+A. Use the same dataset for all three segments to simplify reporting.B. Select only the data that is easiest to download.C. Use retail sales records as a substitute for all upstream and midstream measurements.D. Identify the relevant operational processes and select data sources appropriate to each segment.
+SECTION C: INTEGRATED DATA GOVERNANCE AND OIL AND GAS SCENARIOS
+Questions 171–180 | Weeks 6–7
+171. An oil company collects drilling telemetry and equipment sensor readings from several production facilities. The data is used to develop a predictive maintenance model. However, some facilities have incomplete equipment histories, while others have detailed inspection records. What should the data science team do before relying on the model's predictions?
+A. Assess data quality, completeness and representativeness across facilities.B. Assume that the facility with the largest dataset represents every other facility.C. Delete all records from facilities with incomplete histories without further investigation.D. Train the model using only the most recent records, regardless of their quality.
+172. A pipeline company provides SCADA data to an external consultant for operational analysis. The dataset includes sensitive infrastructure information and identifiable employee details. What is the most appropriate data governance action before sharing it?
+A. Upload the entire dataset to a public repository.B. Remove all timestamps, including those essential for the agreed analysis.C. Assess the sharing purpose, restrict unnecessary personal information and apply appropriate access and contractual controls.D. Allow the consultant to decide independently which information should be protected.
+173. A refinery uses a predictive model to recommend operating adjustments. Engineers notice that the recommendations are consistently less reliable during certain operating conditions that were poorly represented in the historical training data. What is the most appropriate response?
+A. Increase the model's complexity without reviewing the training data.B. Investigate the underrepresented operating conditions, improve data coverage and evaluate model performance across those conditions.C. Ignore the problem because the model performs well under normal conditions.D. Remove all operational condition variables from the model.
+174. An oil company wants to provide a university research team with historical production data. The researchers need production trends by field and month but do not need employee identities or confidential personal records. Which approach is most appropriate?
+A. Provide unrestricted access to the entire operational database.B. Share the original employee records with names removed only from the file title.C. Allow researchers to connect directly to all company systems.D. Prepare a purpose-specific dataset containing the required production information while protecting unnecessary sensitive information.
+175. A production manager receives a report showing that one facility has significantly more equipment failures than other facilities. However, that facility also records maintenance events more consistently. What should the manager consider before concluding that the facility has poorer equipment reliability?
+A. Differences in reporting practices may influence the observed failure rates and should be investigated.B. The facility must have the worst equipment because it has the most recorded failures.C. All failure records from other facilities should be discarded.D. The number of recorded failures is always an unbiased measure of actual failures.
+176. An organisation wants to investigate a pipeline incident using sensor readings, maintenance records and SCADA alerts. Management also wants to establish which systems generated the data and how it was processed before appearing in the final report. Which capability is particularly important?
+A. Data maskingB. Data compressionC. Data lineageD. Data deduplication alone
+177. An oil company uses role-based access to protect its production database. Engineers need access to operational measurements, while HR personnel need access to employee records. A new analyst is assigned to the production reporting team. What is the most appropriate access arrangement?
+A. Give the analyst access to every database because analytical work may require different datasets later.B. Grant access to the production data required for the assigned responsibilities and review permissions periodically.C. Give the analyst the same privileges as the database administrator.D. Use a shared account belonging to the entire reporting department.
+178. A company develops a predictive maintenance model using historical equipment records. The model performs well during testing but produces unreliable recommendations after deployment because equipment operating conditions have changed. What should the organisation establish?
+A. A permanent prohibition on updating the model.B. A policy of ignoring new sensor readings after deployment.C. A process of deleting all historical training data.D. Ongoing monitoring of model performance, data quality and changes in operating conditions.
+179. An energy company wants to establish a reliable data governance framework across its upstream, midstream and downstream operations. Different departments currently maintain separate definitions of production, downtime and equipment failure. Which intervention is most appropriate?
+A. Establish common data definitions, assigned responsibilities, quality standards and documented governance procedures while respecting operational differences.B. Allow each department to retain undocumented definitions.C. Consolidate all information into one spreadsheet without validation.D. Restrict data access to senior management and discontinue operational reporting.
+180. An oil and gas company is reviewing a proposed analytics project that combines employee information, drilling telemetry, pipeline SCADA records and refinery performance data. The objective is to improve operational decisions while protecting sensitive information. Which approach best reflects sound professional practice?
+A. Prioritise model development and address privacy concerns after deployment.B. Combine all available records without assessing their relevance or quality.C. Define the analytical purpose, assess data quality, apply appropriate privacy and access controls, and evaluate the operational usefulness of the results.D. Remove all governance requirements because the project is intended for internal use.
+ANSWER FOR PART 1
+| Question   | Answer   | Question   | Answer   | Question   | Answer   |
+| 1   | C   | 21   | C   | 41   | A   |
+| 2   | A   | 22   | A   | 42   | C   |
+| 3   | D   | 23   | D   | 43   | B   |
+| 4   | B   | 24   | B   | 44   | D   |
+| 5   | A   | 25   | A   | 45   | A   |
+| 6   | C   | 26   | C   | 46   | C   |
+| 7   | B   | 27   | D   | 47   | B   |
+| 8   | D   | 28   | B   | 48   | D   |
+| 9   | A   | 29   | A   | 49   | A   |
+| 10   | C   | 30   | C   | 50   | C   |
+| 11   | B   | 31   | D   | 51   | B   |
+| 12   | D   | 32   | B   | 52   | D   |
+| 13   | A   | 33   | C   | 53   | A   |
+| 14   | C   | 34   | A   | 54   | C   |
+| 15   | B   | 35   | D   | 55   | B   |
+| 16   | D   | 36   | B   | 56   | D   |
+| 17   | A   | 37   | C   | 57   | A   |
+| 18   | C   | 38   | A   | 58   | C   |
+| 19   | B   | 39   | D   | 59   | B   |
+| 20   | D   | 40   | B   | 60   | A   |
+ANSWERS FOR PART 2
+| Question   | Answer   | Question   | Answer   | Question   | Answer   |
+| 61   | B   | 81   | B   | 101   | B   |
+| 62   | D   | 82   | D   | 102   | D   |
+| 63   | A   | 83   | A   | 103   | A   |
+| 64   | C   | 84   | C   | 104   | C   |
+| 65   | B   | 85   | B   | 105   | B   |
+| 66   | D   | 86   | D   | 106   | A   |
+| 67   | A   | 87   | A   | 107   | C   |
+| 68   | C   | 88   | C   | 108   | D   |
+| 69   | B   | 89   | B   | 109   | B   |
+| 70   | D   | 90   | D   | 110   | C   |
+| 71   | A   | 91   | C   | 111   | A   |
+| 72   | C   | 92   | A   | 112   | D   |
+| 73   | B   | 93   | D   | 113   | B   |
+| 74   | D   | 94   | B   | 114   | C   |
+| 75   | A   | 95   | A   | 115   | A   |
+| 76   | C   | 96   | C   | 116   | D   |
+| 77   | B   | 97   | D   | 117   | B   |
+| 78   | D   | 98   | B   | 118   | C   |
+| 79   | A   | 99   | A   | 119   | A   |
+| 80   | C   | 100   | C   | 120   | D   |
+ANSWERS FOR PART 3 
+| Question   | Answer   | Question   | Answer   | Question   | Answer   |
+| 121   | B   | 141   | B   | 161   | B   |
+| 122   | D   | 142   | D   | 162   | D   |
+| 123   | A   | 143   | A   | 163   | A   |
+| 124   | C   | 144   | C   | 164   | C   |
+| 125   | B   | 145   | B   | 165   | B   |
+| 126   | D   | 146   | D   | 166   | D   |
+| 127   | A   | 147   | A   | 167   | A   |
+| 128   | C   | 148   | C   | 168   | C   |
+| 129   | B   | 149   | B   | 169   | B   |
+| 130   | D   | 150   | D   | 170   | D   |
+| 131   | A   | 151   | A   | 171   | A   |
+| 132   | C   | 152   | C   | 172   | C   |
+| 133   | B   | 153   | B   | 173   | B   |
+| 134   | D   | 154   | D   | 174   | D   |
+| 135   | A   | 155   | A   | 175   | A   |
+| 136   | C   | 156   | C   | 176   | C   |
+| 137   | B   | 157   | B   | 177   | B   |
+| 138   | D   | 158   | D   | 178   | D   |
+| 139   | A   | 159   | A   | 179   | A   |
+| 140   | C   | 160   | C   | 180   | C   |

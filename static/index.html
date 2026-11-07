@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title class="exam-title-tag">NCDMB CBT Portal - Assessment on Module 1: Digital Foundations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261107_v4">
+  <style>
+    @media print {
+      body.exam-active #view-exam,
+      body.exam-proctored #view-exam,
+      #view-exam.active,
+      #view-exam.active * {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+      }
+      #view-photocard.active,
+      #view-photocard.active .photocard-container,
+      #view-photocard.active .photocard-slip-card,
+      #view-result.active,
+      #view-result.active .result-container,
+      #view-result.active .result-slip-card {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+      }
+    }
+  </style>
+  <script>
+    if (window.location.hostname === 'ncdmb.gov.ng') {
+      window.location.replace('https://www.ncdmb.gov.ng' + window.location.pathname + window.location.search + window.location.hash);
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Top Navigation / Header (Clean brand header with no extra buttons) -->
+  <header class="header-bar">
+    <div class="brand-section">
+      <img src="/static/images/emblem_logo.png?v=1" alt="NCDMB Emblem" class="brand-logo" onerror="this.src='/static/images/logo.png'">
+      <div class="brand-titles">
+        <h1 class="org-name-text" style="letter-spacing: 0.5px; font-weight: 800;">NIGERIAN CONTENT DEVELOPMENT AND MONITORING BOARD</h1>
+        <p class="exam-title-text" style="color: #E5A823; font-weight: 600;">Assessment on Module 1: Digital Foundations</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- ======================================================== -->
+    <!-- VIEW 1: Candidate Accreditation, Exam & Result Portal    -->
+    <!-- ======================================================== -->
+    <section id="view-entry" class="view-section active">
+
+      <div class="card-entry" style="max-width: 680px;">
+        <div class="card-entry-header">
+          <img src="/static/images/logo_white.png?v=3" alt="Nigerian Content Development and Monitoring Board (NCDMB)" class="hero-logo" onerror="this.src='/static/images/logo.png'">
+          <h2 id="entry-card-title" style="color: #fde68a; font-size: 1.25rem; font-weight: 700; margin: 0 0 6px 0;">CBT Examination Login</h2>
+          <p id="entry-card-subtitle" style="color: #e2e8f0; font-size: 0.88rem; margin: 0;">Enter your Candidate ID and 5-Digit Examination PIN to commence the assessment</p>
+        </div>
+
+        <!-- Segmented Navigation Tabs (Hidden to prioritize CBT Exam Login view) -->
+        <div class="entry-nav-tabs" style="display: none;">
+          <button type="button" class="entry-tab-btn" id="tab-btn-register" onclick="switchEntryTab('register')">
+            <span>🪪 Verification & Photocard</span>
+          </button>
+          <button type="button" class="entry-tab-btn active" id="tab-btn-start" onclick="switchEntryTab('start')">
+            <span>📝 Take CBT Exam</span>
+          </button>
+        </div>
+
+        <div class="card-entry-body">
+          <!-- ======================================================== -->
+          <!-- PRIMARY VIEW: CBT Examination Hall Login Form            -->
+          <!-- ======================================================== -->
+          <div id="tab-content-start" style="display:block;">
+            <!-- Examination Closed Alert Notice (Displayed dynamically when portal is closed) -->
+            <div id="closed-exam-notice" class="closed-exam-notice" style="display: none;">
+              <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <span style="font-size: 2.2rem; line-height: 1;">⚠️</span>
+                <div>
+                  <h3 style="margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 800; color: #b45309;">NCDMB CBT Portal (www.ncdmb.gov.ng) is Currently Closed</h3>
+                  <p style="margin: 0; font-size: 0.88rem; line-height: 1.5; color: #78350f;">
+                    The CBT examination portal is currently closed for test-taking sessions. You cannot log into an examination at this moment. You can still verify your officer records and print your CBT Photocard using the link below.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Examination Hall Directives & Instructions -->
+            <div class="info-banner" style="margin-top: 0; margin-bottom: 22px;">
+              <div style="font-size: 1.6rem;">⏱️</div>
+              <div>
+                <strong>Official Examination Hall Instructions:</strong>
+                <ul style="margin-top: 4px; margin-left: 18px; font-size: 0.85rem; line-height: 1.5;">
+                  <li>Structure: <strong>3-Part Assessment (Part 1, Part 2, and Part 3)</strong></li>
+                  <li>Duration: <strong>Strictly 60 Minutes per Part</strong> (Live automatic countdown timer)</li>
+                  <li>Questions: <strong>60 Multiple Choice Questions per Part</strong> (1.0 mark each = 60 marks per Part | Total: 180 Marks)</li>
+                  <li>Curriculum: <strong>Part 1</strong> (Digital Productivity & Statistics) • <strong>Part 2</strong> (SQL & RDBMS) • <strong>Part 3</strong> (Data Governance & Oil & Gas Analytics)</li>
+                  <li>Authentication: <strong>Candidate ID + 5-Digit Examination PIN</strong></li>
+                  <li>PIN Binding: Login PIN binds permanently to your record upon first login. Single attempt only.</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-token-exam">
+              <div class="form-group">
+                <label for="token-exam-psn">Candidate ID <span class="req">*</span></label>
+                <input type="text" id="token-exam-psn" class="form-control" placeholder="e.g. NCDMB-2026-001" required autocomplete="off" style="font-size: 1.15rem; font-weight: 700; height: 52px;">
+              </div>
+
+              <div class="form-group">
+                <label for="token-exam-code">5-Digit CBT Login PIN <span class="req">*</span></label>
+                <input type="text" id="token-exam-code" class="form-control token-code-input" placeholder="e.g. 65547" maxlength="10" required autocomplete="off" style="height: 52px; font-size: 1.25rem;">
+                <p style="font-size: 0.82rem; color: #64748b; margin-top: 6px; text-align: center;">
+                  Enter the 5-digit Login PIN issued to you inside the CBT examination hall
+                </p>
+              </div>
+
+              <button type="submit" id="btn-start-token-exam" class="btn-cbt-login" style="margin-top: 20px;">
+                <span id="btn-start-token-text">🚀 LOGIN & COMMENCE CBT ASSESSMENT (60 MINS)</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- SECONDARY VIEW: Candidate Verification & Photocard       -->
+          <!-- ======================================================== -->
+          <div id="tab-content-register" style="display:none;">
+            <div style="margin-bottom: 18px; display: flex; justify-content: flex-start;">
+              <button type="button" class="btn-return-login" onclick="switchEntryTab('start')">
+                <span>← Return to CBT Examination Login</span>
+              </button>
+            </div>
+
+            <!-- Step 1: Lookup Form -->
+            <div id="reg-lookup-box">
+              <div style="background: #e0f2fe; border: 1.5px solid #bae6fd; border-radius: 10px; padding: 16px 18px; margin-bottom: 20px; color: #0369a1; font-size: 0.9rem; line-height: 1.55;">
+                <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                  <span>ℹ️ Candidate Self-Service Clearance</span>
+                </div>
+                Enter your <strong>PSN</strong> and your <strong>Registration Clearance Code (Code 1, e.g. A-77253)</strong> to verify your records, upload your passport photograph, and generate your printable CBT Examination Photocard.
+              </div>
+
+              <form id="form-candidate-lookup">
+                <div class="form-group">
+                  <label for="reg-input-psn">PSN <span class="req">*</span></label>
+                  <input type="text" id="reg-input-psn" class="form-control" placeholder="e.g. 128439" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                  <label for="reg-input-code1">Registration Clearance Code (Code 1) <span class="req">*</span></label>
+                  <input type="text" id="reg-input-code1" class="form-control" placeholder="e.g. A-77253" required autocomplete="off" style="text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+                  <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Enter the exact clearance code issued to your MDA record</p>
+                </div>
+
+                <button type="submit" id="btn-lookup-candidate" class="btn-primary-large">
+                  <span id="btn-lookup-text">🔍 Verify Officer Record</span>
+                </button>
+              </form>
+
+              <div style="text-align: center; margin-top: 18px;">
+                <button type="button" class="btn-return-login" onclick="switchEntryTab('start')">
+                  <span>← Return to CBT Examination Login</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Candidate Profile & Passport Photo Upload (Shown after lookup) -->
+            <div id="reg-profile-box" style="display:none;">
+              <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; color: #166534; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <strong style="font-size: 1rem;">✅ Officer Record Verified</strong>
+                  <div style="font-size: 0.85rem; color: #15803d; margin-top: 2px;">Review details, amend spelling if necessary, upload passport photo, and generate photocard.</div>
+                </div>
+                <button type="button" class="btn-ctrl" style="padding: 6px 12px; font-size: 0.8rem;" onclick="resetCandidateLookup()">
+                  <span>🔄 Look Up Another PSN</span>
+                </button>
+              </div>
+
+              <form id="form-complete-reg">
+                <!-- Profile Data Grid -->
+                <div class="reg-profile-grid">
+                  <div class="form-group">
+                    <label for="reg-amended-name">Officer Full Name (Surname First) <span class="req">*</span></label>
+                    <input type="text" id="reg-amended-name" class="form-control" required placeholder="Surname Firstname Othername">
+                    <small style="font-size: 0.75rem; color: #64748b;">Roster Name: <span id="reg-orig-name-lbl" style="font-weight: 600;">-</span> (Amend above if misspelled)</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="reg-amended-psn">PSN <span class="req">*</span></label>
+                    <input type="text" id="reg-amended-psn" class="form-control" required placeholder="e.g. 128439" style="font-weight: 700; color: #004d40;">
+                    <small style="font-size: 0.75rem; color: #64748b;">Roster PSN: <span id="reg-orig-psn-lbl" style="font-weight: 600;">-</span> (Amend above if incorrect or changed)</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Ministry / Department / Agency (MDA)</label>
+                    <input type="text" id="reg-disp-mda" class="form-control" readonly style="background: #f1f5f9; font-weight: 600;">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="reg-amended-rank">Cadre / Proposed Rank <span class="req">*</span></label>
+                    <input type="text" id="reg-amended-rank" class="form-control" required placeholder="e.g. Senior Executive Officer" style="font-weight: 600; color: #0f172a;">
+                    <small style="font-size: 0.75rem; color: #64748b;">Roster Rank: <span id="reg-orig-rank-lbl" style="font-weight: 600;">-</span> (Amend above if incorrect)</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="reg-amended-gl">Proposed Grade Level <span class="req">*</span></label>
+                    <select id="reg-amended-gl" class="form-control" style="font-weight: 700; color: #004d40; background: #ffffff;" onchange="handleGradeLevelChange()">
+                      <option value="06">GL 06 (Group D)</option>
+                      <option value="07">GL 07 (Group D)</option>
+                      <option value="08">GL 08 (Group D)</option>
+                      <option value="09">GL 09 (Group C)</option>
+                      <option value="10">GL 10 (Group C)</option>
+                      <option value="12">GL 12 (Group B)</option>
+                      <option value="13">GL 13 (Group B)</option>
+                      <option value="14">GL 14 (Group A)</option>
+                      <option value="15">GL 15 (Group A)</option>
+                      <option value="16">GL 16 (Group A)</option>
+                      <option value="17">GL 17 (Directorate / GL 17)</option>
+                    </select>
+                    <small style="font-size: 0.75rem; color: #64748b;">Roster Grade Level: <span id="reg-orig-gl-lbl" style="font-weight: 600;">-</span> (Select to change level & paper)</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Allocated Grade Level & Group</label>
+                    <input type="text" id="reg-disp-gl" class="form-control" readonly style="background: #f1f5f9; font-weight: 700; color: #0f172a;">
+                  </div>
+
+                  <div class="form-group">
+                    <label>Examination Subject Code & Paper</label>
+                    <input type="text" id="reg-disp-paper" class="form-control" readonly style="background: #f1f5f9; font-weight: 700; color: #0369a1;">
+                  </div>
+                </div>
+
+                <!-- Schedule Box -->
+                <div class="schedule-banner-box">
+                  <h4>📅 Official Examination Timetable Allocation</h4>
+                  <div class="schedule-grid">
+                    <div class="schedule-item">
+                      Date of Exam:
+                      <span id="reg-disp-date">-</span>
+                    </div>
+                    <div class="schedule-item">
+                      Allocated Batch:
+                      <span id="reg-disp-batch">-</span>
+                    </div>
+                    <div class="schedule-item">
+                      Accreditation Time:
+                      <span id="reg-disp-accred">-</span>
+                    </div>
+                    <div class="schedule-item">
+                      Exam Time:
+                      <span id="reg-disp-examtime">-</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Contact Inputs -->
+                <div class="reg-contact-grid">
+                  <div class="form-group">
+                    <label for="reg-input-phone">Mobile Phone Number <span class="req">*</span></label>
+                    <input type="tel" id="reg-input-phone" class="form-control" placeholder="e.g. 08031234567" required autocomplete="tel">
+                  </div>
+                  <div class="form-group">
+                    <label for="reg-input-email">Contact / Official Email Address <span class="req">*</span></label>
+                    <input type="email" id="reg-input-email" class="form-control" placeholder="e.g. officer@ncdmb.gov.ng" required autocomplete="email">
+                  </div>
+                </div>
+
+                <!-- Passport Photograph Upload & Webcam Capture -->
+                <div class="reg-photo-upload-wrap">
+                  <div class="reg-passport-preview-box">
+                    <img id="reg-passport-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='160' viewBox='0 0 140 160'><rect width='140' height='160' fill='%23f1f5f9'/><circle cx='70' cy='55' r='30' fill='%23cbd5e1'/><path d='M20 145 C20 105 50 95 70 95 C90 95 120 105 120 145 Z' fill='%23cbd5e1'/><text x='70' y='155' text-anchor='middle' font-size='10' fill='%2394a3b8' font-family='sans-serif'>No Photo</text></svg>" alt="Passport Photograph">
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a; margin-bottom: 4px;">Passport Photograph <span class="req">*</span></div>
+                    <p style="font-size: 0.82rem; color: #64748b; line-height: 1.45; margin-bottom: 12px;">
+                      A clear, front-facing passport photograph is required on your official CBT photocard. You can take a live webcam snapshot or upload an image file from your device.
+                    </p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                      <button type="button" class="btn-ctrl" id="btn-webcam-trigger" style="background:#f0fdf4; border-color:#86efac; color:#166534; font-weight:700;" onclick="openWebcamModal()">
+                        <span>📸 Live Webcam Capture</span>
+                      </button>
+                      <button type="button" class="btn-ctrl" id="btn-file-trigger" style="background:#f8fafc; border-color:#cbd5e1; font-weight:600;" onclick="document.getElementById('reg-file-input').click()">
+                        <span>📁 Upload Photo File</span>
+                      </button>
+                      <input type="file" id="reg-file-input" accept="image/*" style="display: none;" onchange="handlePassportFileSelect(this)">
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                  <button type="submit" id="btn-save-photocard" class="btn-primary-large">
+                    <span id="btn-save-photocard-text">💾 Save Registration & Generate Official CBT Photocard</span>
+                  </button>
+                  <button type="button" id="btn-direct-photocard" class="btn-ctrl" style="display:none; padding: 12px; font-weight: 700; border-color: #0284c7; color: #0369a1; background: #f0f9ff;" onclick="viewDirectPhotocard()">
+                    <span>🖨️ View & Print Registered Photocard Directly</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+
+
+
+
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 2: Active CBT Testing Interface                     -->
+    <!-- ======================================================== -->
+    <section id="view-exam" class="view-section">
+      <!-- Diagonal Confidential Watermark Overlay -->
+      <div class="exam-watermark-overlay" id="exam-watermark-overlay"></div>
+
+      <!-- Exam Info Bar with Live Countdown & Exit Control -->
+      <div class="exam-top-bar">
+        <div class="network-status-badge online" id="exam-network-status" title="Real-time network status">
+          <span class="network-dot"></span>
+          <span id="network-status-text">Connected</span>
+        </div>
+        <div class="security-status-badge secure" id="exam-security-badge" title="Anti-Cheating Proctor Shield Active">
+          <span class="security-dot"></span>
+          <span id="security-status-text">🛡️ Shield: Active (0/3)</span>
+        </div>
+        <div class="candidate-badge">
+          <div class="candidate-avatar" id="exam-candidate-avatar">I</div>
+          <div class="candidate-meta">
+            <h3 id="exam-candidate-name">Candidate ID</h3>
+            <p id="exam-candidate-psn">Status: Active Session</p>
+          </div>
+        </div>
+
+        <div class="timer-box" id="exam-timer">
+          <div class="timer-icon-wrap">
+            <span class="timer-icon">⏱️</span>
+          </div>
+          <div class="timer-text-wrap">
+            <span class="timer-label">TIME REMAINING</span>
+            <span id="timer-text" class="timer-countdown">60:00</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn-exit-exam" id="btn-exit-exam" onclick="openExitModal()">
+          <span>🚪 Exit Exam</span>
+        </button>
+      </div>
+
+      <!-- Main Testing Grid -->
+      <div class="exam-layout">
+        <!-- Question Box -->
+        <div class="question-card">
+          <div class="question-header">
+            <div class="question-num-tag" id="q-current-num">Question 1 of 50</div>
+            <div class="grade-tag" id="q-grade-tag">GL 08</div>
+          </div>
+
+          <div class="question-text" id="q-text">
+            Loading question...
+          </div>
+
+          <div class="options-container" id="options-container">
+            <!-- Options dynamically populated by JS -->
+          </div>
+
+          <!-- Question Controls -->
+          <div class="exam-controls">
+            <!-- Row 1: Primary Navigation Bar (Previous vs Next Question) -->
+            <div class="nav-actions-bar">
+              <button type="button" class="btn-nav-prev" id="btn-prev" onclick="prevQuestion()">
+                <span>⬅️ Previous</span>
+              </button>
+              <button type="button" class="btn-nav-next" id="btn-next" onclick="nextQuestion()">
+                <span>Next Question ➔</span>
+              </button>
+            </div>
+
+            <!-- Row 2: Secondary Review Tools (Flag, Clear, Mobile Grid Toggle) -->
+            <div class="tools-actions-bar">
+              <button type="button" class="btn-tool-ctrl" id="btn-flag" onclick="toggleCurrentFlag()">
+                <span>🏳️ Flag for Review</span>
+              </button>
+              <button type="button" class="btn-tool-ctrl" id="btn-clear" onclick="clearCurrentAnswer()">
+                <span>🔄 Clear Choice</span>
+              </button>
+              <button type="button" class="btn-tool-ctrl btn-mobile-palette-toggle" id="btn-toggle-palette" onclick="toggleMobilePalette()">
+                <span>📋 Question Grid (40)</span>
+              </button>
+            </div>
+
+            <!-- Row 3: Dedicated Finalize & Submit Section (Spatially Separated & Highly Distinct) -->
+            <div class="exam-submit-section">
+              <button type="button" class="btn-exam-submit btn-submit-locked" id="btn-submit-exam" onclick="openSubmitModal()">
+                <span id="btn-submit-icon">🔒</span>
+                <span id="btn-submit-text">Submit Exam (0 of 40 Answered)</span>
+              </button>
+              <p class="submit-requirement-hint" id="submit-requirement-hint">
+                <span>⚠️ All questions in this Part must be answered before manual submission can be completed.</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Palette Sidebar -->
+        <aside class="palette-card" id="exam-palette-sidebar">
+          <div class="palette-header">
+            <span>Question Palette</span>
+            <span style="font-size: 0.8rem; color: #64748b;">(1 - 40)</span>
+          </div>
+
+          <!-- Mini Sidebar Timer Display -->
+          <div class="sidebar-timer-badge" id="sidebar-timer-box">
+            <span>⏱️ Time Left:</span>
+            <strong id="sidebar-timer-text">20:00</strong>
+          </div>
+
+          <div class="legend-grid">
+            <div class="legend-item"><div class="legend-dot answered"></div> Answered (<span id="count-answered">0</span>)</div>
+            <div class="legend-item"><div class="legend-dot unanswered"></div> Unanswered (<span id="count-unanswered">40</span>)</div>
+            <div class="legend-item"><div class="legend-dot flagged"></div> Flagged (<span id="count-flagged">0</span>)</div>
+            <div class="legend-item"><div class="legend-dot current"></div> Current</div>
+          </div>
+
+          <div class="palette-numbers" id="palette-numbers">
+            <!-- 40 question buttons populated by JS -->
+          </div>
+
+          <button type="button" class="btn-primary-large btn-submit-locked" id="btn-sidebar-submit" style="padding: 12px;" onclick="openSubmitModal()">
+            <span id="sidebar-submit-text">🔒 Submit (0/40 Answered)</span>
+          </button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 3: Confirmation Modal                               -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="submit-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 style="display:flex; align-items:center; gap:8px;"><span>✅</span> Confirm Test Submission</h3>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.95rem; color: #334155; line-height: 1.5; margin-bottom: 14px;">
+            Are you sure you want to submit your CBT examination now? All questions have been answered. Once submitted, your answers will be securely recorded and locked.
+          </p>
+
+          <div class="modal-stats-grid">
+            <div class="modal-stat-box">
+              <div class="num" style="color: #10b981;" id="modal-ans-count">40</div>
+              <div class="lbl">Answered</div>
+            </div>
+            <div class="modal-stat-box">
+              <div class="num" style="color: #64748b;" id="modal-unans-count">0</div>
+              <div class="lbl">Unanswered</div>
+            </div>
+            <div class="modal-stat-box">
+              <div class="num" style="color: #8b5cf6;" id="modal-flag-count">0</div>
+              <div class="lbl">Flagged</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ctrl" onclick="closeSubmitModal()">
+            <span>↩️ Return to Review</span>
+          </button>
+          <button type="button" class="btn-ctrl btn-submit-ready" onclick="submitExam(false)" style="padding: 10px 22px; font-weight: 700;">
+            <span>✅ Yes, Submit Exam Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 3B: Incomplete Questions Warning Modal               -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="modal-unanswered-warning">
+      <div class="modal-card" style="max-width: 460px; text-align: center; padding: 24px;">
+        <div style="width: 58px; height: 58px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 14px auto;">
+          ⚠️
+        </div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Incomplete Examination Questions</h3>
+        <p style="font-size: 0.92rem; color: #475569; line-height: 1.55; margin-bottom: 16px;">
+          You have answered <strong id="warn-answered-count" style="color: #059669;">0</strong> of <strong id="warn-total-count">40</strong> questions.<br>
+          Examination regulations require candidates to <strong>answer all questions</strong> before manual submission.
+        </p>
+        <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; font-size: 0.92rem; color: #92400e; text-align: left;">
+          <div style="font-weight: 800; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span>⏳</span> <span id="warn-unanswered-count">40</span> Unanswered Questions Remaining
+          </div>
+          <div style="font-size: 0.8rem; color: #78350f; line-height: 1.45;">
+            Please complete the remaining questions. When the 20-minute timer finishes, your exam will be automatically submitted.
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="btn-primary-large" style="padding: 13px; font-size: 0.95rem; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: none;" onclick="jumpToNextUnanswered()">
+            <span>🔍 Jump to Next Unanswered Question</span>
+          </button>
+          <button type="button" class="btn-ctrl" style="padding: 11px; font-size: 0.9rem; justify-content: center;" onclick="closeUnansweredWarningModal()">
+            <span>↩️ Continue Reviewing Current Question</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 3C: Exit Exam Confirmation Modal                    -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="exit-exam-modal">
+      <div class="modal-card" style="max-width: 440px; text-align: center; padding: 24px;">
+        <div style="width: 50px; height: 50px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 14px auto;">
+          🚪
+        </div>
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Exit CBT Examination?</h3>
+        <p id="exit-modal-desc" style="font-size: 0.9rem; color: #475569; line-height: 1.5; margin-bottom: 20px;">
+          Are you sure you want to exit your test session? You can return to continue your test.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" id="btn-exit-submit-now" class="btn-primary-large" style="padding: 11px; font-size: 0.95rem; background: #059669; display: none;" onclick="submitExam(false)">
+            <span>✅ Submit & Finish Examination Now</span>
+          </button>
+          <button type="button" class="btn-ctrl" style="padding: 10px; font-size: 0.9rem; border-color: #cbd5e1; justify-content: center;" onclick="closeExitModal()">
+            <span>↩️ Return to Test</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW: Official Candidate CBT Photocard                   -->
+    <!-- ======================================================== -->
+    <section id="view-photocard" class="view-section">
+      <div class="photocard-container">
+        <div class="photocard-slip-card">
+          <div class="photocard-header">
+            <img src="/static/images/logo.png" alt="Organization Logo" style="height: 54px; margin-bottom: 6px;" onerror="this.style.display='none'">
+            <h2 class="org-name-text" style="color: #00563F; font-weight: 800;">NIGERIAN CONTENT DEVELOPMENT AND MONITORING BOARD</h2>
+            <h3>2026 PROMOTION EVALUATION EXAMINATIONS</h3>
+            <p>OFFICIAL CBT ACCREDITATION & CLEARANCE PHOTOCARD</p>
+          </div>
+
+          <div class="photocard-body" id="photocard-render-target">
+            <!-- Dynamically populated by JS renderPhotocard() -->
+          </div>
+        </div>
+
+        <div class="photocard-actions">
+          <button type="button" class="btn-ctrl btn-submit" id="btn-print-photocard" style="padding: 12px 28px; font-size: 1rem;" onclick="window.print()">
+            <span>🖨️ Print CBT Photocard (PDF)</span>
+          </button>
+          <button type="button" class="btn-ctrl" id="btn-proceed-exam-from-photocard" style="padding: 12px 24px; font-size: 1rem; border-color: #059669; color: #047857; background: #ecfdf5; font-weight: 700;" onclick="proceedToExamFromPhotocard()">
+            <span>📝 Proceed to CBT Examination</span>
+          </button>
+          <button type="button" class="btn-ctrl" style="padding: 12px 24px; font-size: 1rem; border-color: #cbd5e1; background: #fff;" onclick="returnToPortalHome()">
+            <span>🏠 Return to Portal Home</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 4: Official Submission Acknowledgement Slip        -->
+    <!-- ======================================================== -->
+    <section id="view-result" class="view-section">
+      <div class="result-container">
+        <div class="result-slip-card">
+          <div class="slip-header">
+            <img src="/static/images/logo.png" alt="Organization Logo" class="slip-header-logo" onerror="this.style.display='none'">
+            <h2 class="org-name-text" style="color: #00563F; font-weight: 800;">NIGERIAN CONTENT DEVELOPMENT AND MONITORING BOARD</h2>
+            <p>2026 Promotion Evaluation Examination - Submission Acknowledgement</p>
+          </div>
+
+          <div class="slip-body">
+            <!-- Submission Confirmation Hero (Zero scores shown) -->
+            <div style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #ffffff; padding: 24px 20px; border-radius: 12px; text-align: center; margin-bottom: 24px; box-shadow: 0 4px 14px rgba(0, 77, 64, 0.2);">
+              <div style="font-size: 2.6rem; margin-bottom: 8px;">✅</div>
+              <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; color: #ffffff; letter-spacing: -0.01em;">Examination Successfully Submitted</h3>
+              <p style="font-size: 0.92rem; color: #e0f2f1; margin: 0; font-weight: 500;">
+                Your CBT examination answers have been securely received and recorded in the Official Examination database.
+              </p>
+            </div>
+
+            <!-- Candidate Details -->
+            <div class="slip-details-grid">
+              <div class="slip-detail-row">
+                <div class="lbl">Candidate ID</div>
+                <div class="val" id="res-name">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Portal Assessment</div>
+                <div class="val" id="res-psn">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Email Address</div>
+                <div class="val" id="res-email">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Cadre / Proposed Grade Level</div>
+                <div class="val" id="res-grade">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Ministry / Department / Agency</div>
+                <div class="val" id="res-mda">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Examination Paper Code</div>
+                <div class="val" id="res-paper">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Time Spent</div>
+                <div class="val" id="res-time">-</div>
+              </div>
+              <div class="slip-detail-row">
+                <div class="lbl">Submission Status</div>
+                <div class="val" style="color: #059669; font-weight: 700;">Recorded & Locked</div>
+              </div>
+              <div class="slip-detail-row" style="grid-column: span 2;">
+                <div class="lbl">Submission Date & Time</div>
+                <div class="val" id="res-date">-</div>
+              </div>
+            </div>
+
+            <!-- Official Result Confidentiality Policy Notice Banner -->
+            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-left: 5px solid #004d40; border-radius: 8px; padding: 16px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #334155; line-height: 1.6;">
+              <div style="font-weight: 800; color: #004d40; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>🔒 Official Result Confidentiality Policy</span>
+              </div>
+              In accordance with Official examination regulations, examination scores are not displayed on candidate workstations. Official results, promotional recommendations, and final scores will be processed and communicated through designated Ministry, Department, and Agency (MDA) channels.
+            </div>
+
+            <!-- Single Attempt Notice Banner -->
+            <div style="background: #fffbeb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; color: #92400e; text-align: center; border: 1px solid #fde68a;">
+              ℹ️ <strong>Evaluation Session Concluded</strong>: Retakes or additional test attempts are strictly prohibited. Please print or save this Acknowledgement Slip for your records.
+            </div>
+
+            <!-- Footer & Signature -->
+            <div class="slip-footer">
+              <div>
+                <div id="res-ref-code" style="font-weight: 700; color: #004d40;">Ref: NCDMB-MOD1-SUB-00000</div>
+                <div style="font-size: 0.75rem; margin-top: 2px;">Electronically verified & recorded by NCDMB CBT Portal (www.ncdmb.gov.ng)</div>
+              </div>
+              <div class="slip-sign-line">
+                Nigerian Content Development and Monitoring Board
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-actions" style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <button type="button" class="btn-ctrl btn-submit" id="btn-print-slip" style="padding: 12px 28px; font-size: 1rem;" onclick="window.print()">
+            <span>🖨️ Print Acknowledgement Slip (PDF)</span>
+          </button>
+          <button type="button" class="btn-ctrl" id="btn-return-home" style="padding: 12px 24px; font-size: 1rem; border-color: #cbd5e1; background: #fff;" onclick="returnToPortalHome()">
+            <span>🏠 Return to Portal Home</span>
+          </button>
+          <button type="button" class="btn-ctrl" id="btn-close-session" style="padding: 12px 24px; font-size: 1rem; border-color: #cbd5e1; background: #fff;" onclick="closeExamSession()">
+            <span>❌ Close CBT Session</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 5: Admin Management Dashboard                       -->
+    <!-- ======================================================== -->
+    <section id="view-admin" class="view-section">
+      <div class="admin-card">
+        <div class="admin-header">
+          <div>
+            <h2>CBT Evaluation Results & Admin Dashboard</h2>
+            <p style="color: #64748b; font-size: 0.875rem;">Real-time candidate submissions, scoring analytics, and portal control</p>
+          </div>
+
+          <div class="export-btns" style="align-items:center; flex-wrap:wrap; gap:8px;">
+            <a href="/api/admin/registrations/excel" id="btn-download-photocards" class="btn-excel" style="background:#0284c7; border-color:#0369a1; color:#fff;" title="Download verified candidates list with uploaded passport photos and registration timestamps">
+              <span>🪪 Download Photocard Registrations (Excel)</span>
+            </a>
+            <a href="/api/admin/roster/excel" id="btn-download-roster" class="btn-excel" style="background:#047857; color:#fff;" title="Download full candidate list with Code 1 registration clearance codes">
+              <span>📥 Download Candidate Codes & Roster (Excel)</span>
+            </a>
+            <a href="/static/slips_by_mda/00_INDEX.html" target="_blank" id="btn-view-slips" class="btn-csv" style="background:#b45309; border-color:#d97706; color:#fff;" title="View and print candidate registration slips by MDA (10 per A4 sheet)">
+              <span>🖨️ Print Registration Slips (By MDA - 10/Page)</span>
+            </a>
+            <a href="/static/scratch_cards/00_INDEX.html" target="_blank" id="btn-view-tokens" class="btn-csv" style="background:#0d9488; border-color:#14b8a6; color:#fff;" title="View and print 5-digit examination scratch card tokens by Batch/Session (10 per A4 sheet)">
+              <span>🎟️ Print Exam Scratch Cards (Code 2 - Batches)</span>
+            </a>
+            <a href="#" id="btn-download-excel" class="btn-excel">
+              <span>📊 Download Results (Excel)</span>
+            </a>
+            <a href="#" id="btn-download-csv" class="btn-csv">
+              <span>📄 Download Results (CSV)</span>
+            <button type="button" class="btn-ctrl" id="btn-return-portal" style="border-color:#cbd5e1;" onclick="navigateToExam()">
+              <span>🏠 Portal Home</span>
+            </button>
+            <button type="button" class="btn-ctrl" id="btn-admin-logout" style="border-color:#cbd5e1;">
+              <span>🚪 Sign Out</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin CBT Exam Control Bar (Exam Access & Anti-Cheat Controls) -->
+        <div class="admin-control-bar" style="display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px;">
+          <div style="flex: 1; min-width: 300px; display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 12px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="admin-status-box" id="admin-status-box" style="margin: 0; padding: 0; border: none; background: transparent;">
+              <span class="status-pulse-dot" id="status-pulse-dot"></span>
+              <div>
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">CBT Portal Access Status</div>
+                <strong id="admin-status-text" class="status-text-open">🟢 ACTIVE & OPEN FOR CANDIDATES</strong>
+              </div>
+            </div>
+            <button type="button" class="btn-toggle-exam btn-status-close" id="btn-toggle-status" onclick="toggleExamStatus()">
+              <span id="btn-toggle-status-text">🔒 Close CBT Examination</span>
+            </button>
+          </div>
+
+          <!-- Anti-Cheat Proctor Shield Control Box -->
+          <div style="flex: 1; min-width: 300px; display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 12px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" id="admin-anti-cheat-box">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="anti-cheat-status-icon" style="font-size: 1.6rem;">🛡️</span>
+              <div>
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Anti-Cheat Proctor Shield</div>
+                <strong id="anti-cheat-status-text" style="color: #16a34a; font-size: 0.92rem; font-weight: 800;">ACTIVE (3 Strikes Auto-Submit)</strong>
+              </div>
+            </div>
+            <button type="button" class="btn-toggle-exam" id="btn-toggle-anti-cheat" style="background: #dc2626; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onclick="toggleAntiCheatStatus()">
+              <span id="btn-toggle-anti-cheat-text">🔒 Turn OFF Anti-Cheat</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics -->
+        <div class="kpi-grid">
+          <div class="kpi-card" style="border-left: 4px solid #0284c7; background: #f0f9ff;">
+            <div class="kpi-val" id="kpi-photocards" style="color: #0369a1;">0 / 2,505</div>
+            <div class="kpi-lbl" id="kpi-photocards-lbl" style="color: #0284c7; font-weight:700;">Photocards Generated (0%)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" id="kpi-total">0</div>
+            <div class="kpi-lbl">Exam Submissions</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" id="kpi-avg">0.0%</div>
+            <div class="kpi-lbl">Average Score</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" id="kpi-rate">0.0%</div>
+            <div class="kpi-lbl">Pass Rate (≥ 50%)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" id="kpi-pass" style="color: #10b981;">0 Passed</div>
+            <div class="kpi-lbl">Qualified Candidates</div>
+          </div>
+        </div>
+
+        <!-- Admin Scratch Card Token Management Bar -->
+        <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 14px 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+          <div>
+            <div style="font-size:0.75rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Exam Day Scratch Card Tokens (5-Digit)</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:3px;">
+              Pool Total: <strong id="admin-tok-total">3,500</strong> &nbsp;|&nbsp;
+              Available: <strong id="admin-tok-unassigned" style="color:#059669;">3,500</strong> &nbsp;|&nbsp;
+              Active: <strong id="admin-tok-active" style="color:#2563eb;">0</strong> &nbsp;|&nbsp;
+              Completed: <strong id="admin-tok-completed" style="color:#7c3aed;">0</strong>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="/static/scratch_cards/00_INDEX.html" target="_blank" class="btn-ctrl" style="background:#ecfdf5; border-color:#86efac; color:#166534; font-weight:700; text-decoration:none; display:inline-flex; align-items:center;">
+              <span>🎟️ Print Scratch Cards (Code 2 - Batches)</span>
+            </a>
+            <a href="/api/admin/tokens/excel" id="btn-download-tokens" class="btn-ctrl" style="background:#f0fdf4; border-color:#bbf7d0; color:#15803d; font-weight:700; text-decoration:none; display:inline-flex; align-items:center;">
+              <span>📥 Download Tokens Excel</span>
+            </a>
+            <button type="button" class="btn-ctrl" style="background:#fff7ed; border-color:#fed7aa; color:#c2410c; font-weight:700;" onclick="confirmResetAllTokens()">
+              <span>♻️ Reset All PINs to Available</span>
+            </button>
+            <button type="button" class="btn-ctrl" style="background:#fef2f2; border-color:#fca5a5; color:#991b1b; font-weight:700;" onclick="openAdminResetModal()">
+              <span>🔄 Reset Candidate PSN</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table View Switcher Tabs: Submissions vs Candidate Manager vs Photocard Registrations vs Tokens -->
+        <div class="admin-tab-nav" style="display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid #e2e8f0; padding-bottom:12px; flex-wrap:wrap;">
+          <button type="button" class="btn-ctrl admin-nav-tab" id="tab-btn-submissions" style="padding:10px 20px; font-weight:700; border-color:#004d40; color:#004d40; background:#e6f4ea; cursor:pointer;" onclick="switchAdminTableView('submissions')">
+            <span>📝 Exam Submissions (<span id="count-tab-submissions">0</span>)</span>
+          </button>
+          <button type="button" class="btn-ctrl admin-nav-tab" id="tab-btn-candidates" style="padding:10px 20px; font-weight:700; border-color:#cbd5e1; color:#475569; background:#fff; cursor:pointer;" onclick="switchAdminTableView('candidates')">
+            <span>🪪 Candidate Manager &amp; PSN Search</span>
+          </button>
+          <button type="button" class="btn-ctrl admin-nav-tab" id="tab-btn-photocards" style="padding:10px 20px; font-weight:700; border-color:#cbd5e1; color:#475569; background:#fff; cursor:pointer;" onclick="switchAdminTableView('photocards')">
+            <span>📋 Verified Photocards (<span id="count-tab-photocards">0</span>)</span>
+          </button>
+          <button type="button" class="btn-ctrl admin-nav-tab" id="tab-btn-tokens" style="padding:10px 20px; font-weight:700; border-color:#cbd5e1; color:#475569; background:#fff; cursor:pointer;" onclick="switchAdminTableView('tokens')">
+            <span>🎟️ Scratch Card Tokens</span>
+          </button>
+        </div>
+
+        <!-- Filter & Search Bar (Used for Submissions & Photocards) -->
+        <div class="filter-bar" id="admin-table-filter-bar">
+          <input type="text" id="admin-search" class="form-control" placeholder="🔍 Filter list by name, PSN, email, or MDA..." style="max-width: 380px;">
+          <select id="admin-grade-filter" class="form-control" style="max-width: 220px;">
+            <option value="ALL">All Grade Levels</option>
+            <option value="GL 08">Grade Level 08</option>
+            <option value="GL 06-07">Grade Levels 06 & 07</option>
+            <option value="GL 09">Grade Level 09</option>
+          </select>
+        </div>
+
+        <!-- PANEL 1: Submissions Table -->
+        <div class="table-responsive" id="wrap-submissions-table">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>S/N</th>
+                <th>Candidate Name</th>
+                <th>PSN</th>
+                <th>Email Address</th>
+                <th>Grade</th>
+                <th>MDA</th>
+                <th style="text-align:center;">Marks (Max 100)</th>
+                <th style="text-align:center;">Score (%)</th>
+                <th>Performance Remark</th>
+                <th>Submitted At</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body">
+              <tr>
+                <td colspan="11" style="text-align:center; padding: 24px; color:#64748b;">Loading candidate submissions...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PANEL 2: Candidate Search, Profile Editor & Questions Inspector -->
+        <div id="wrap-candidates-panel" style="display: none;">
+          <div class="admin-cand-search-container" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:18px 22px; margin-bottom:20px;">
+            <div style="margin-bottom:8px;">
+              <h3 style="font-size:1.05rem; font-weight:800; color:#0f172a; margin:0 0 4px 0;">Officer Candidate Lookup &amp; Record Editor</h3>
+              <p style="font-size:0.82rem; color:#64748b; margin:0;">Search by PSN to view full candidate profile, edit details across the database, or inspect/modify their 40 assigned CBT exam questions.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <div style="flex:1; min-width:260px; position:relative;">
+                <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1.1rem; color:#64748b;">🔍</span>
+                <input type="text" id="admin-cand-search-input" class="form-control" placeholder="Enter Candidate PSN (e.g. 128619, 138777, 127610...)" style="padding-left:42px; font-size:1rem; height:44px;" onkeydown="if(event.key==='Enter') executeAdminCandidateSearch()">
+              </div>
+              <button type="button" class="btn-primary-large" style="width:auto; padding:0 22px; height:44px; border-radius:8px; font-size:0.92rem;" onclick="executeAdminCandidateSearch()">
+                <span>🔍 Search Candidate</span>
+              </button>
+              <button type="button" class="btn-ctrl" style="height:44px;" onclick="clearAdminCandidateSearch()">
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="admin-cand-empty-state" class="admin-empty-state" style="text-align:center; padding:36px 20px; background:#fff; border:1.5px dashed #cbd5e1; border-radius:12px;">
+            <div style="font-size: 2.8rem; margin-bottom: 10px;">🪪</div>
+            <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 6px;">Ready to Search Candidate</h3>
+            <p style="color: #64748b; font-size: 0.88rem; max-width: 500px; margin: 0 auto 16px auto;">
+              Enter a candidate's <strong>PSN</strong> above to load their verified information, cadre allocation, examination batch, and assigned exam questions.
+            </p>
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+              <span style="font-size: 0.78rem; color: #64748b; align-self: center;">Quick Lookups:</span>
+              <button type="button" class="btn-ctrl" style="padding:4px 10px; font-size:0.75rem;" onclick="quickSearchCandidate('128619')">128619 (Martins Halimat)</button>
+              <button type="button" class="btn-ctrl" style="padding:4px 10px; font-size:0.75rem;" onclick="quickSearchCandidate('128618')">128618 (Yinusa Lukman)</button>
+              <button type="button" class="btn-ctrl" style="padding:4px 10px; font-size:0.75rem;" onclick="quickSearchCandidate('138777')">138777</button>
+              <button type="button" class="btn-ctrl" style="padding:4px 10px; font-size:0.75rem;" onclick="quickSearchCandidate('127610')">127610</button>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div id="admin-cand-loading" class="admin-empty-state" style="display:none; text-align:center; padding:40px 20px; background:#fff; border:1.5px solid #e2e8f0; border-radius:12px;">
+            <div class="spinner-small" style="margin: 0 auto 12px auto; width: 32px; height: 32px; border-width: 3px;"></div>
+            <p style="color: #0f172a; font-weight: 700; margin:0;">Retrieving Candidate &amp; Examination Records...</p>
+          </div>
+
+          <!-- Found Candidate Profile Card -->
+          <div id="admin-cand-profile" style="display:none; background:#fff; border:1.5px solid #004d40; border-radius:14px; box-shadow:0 10px 25px -5px rgba(0,77,64,0.08); overflow:hidden;">
+            <!-- Header bar with avatar and main info -->
+            <div style="background:linear-gradient(135deg, #f0fdf4 0%, #e0f2f1 100%); padding:20px 24px; border-bottom:1.5px solid #bbf7d0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                <div style="width:72px; height:72px; border-radius:50%; border:3px solid #004d40; overflow:hidden; background:#e2e8f0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <img id="cand-profile-photo" src="" alt="Candidate Passport" style="width:100%; height:100%; object-fit:cover; display:none;" onerror="this.style.display='none'; document.getElementById('cand-profile-avatar-fallback').style.display='flex';">
+                  <div id="cand-profile-avatar-fallback" style="font-size:2rem; color:#64748b; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">👤</div>
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
+                    <h3 id="cand-profile-name" style="font-size:1.35rem; font-weight:800; color:#004d40; margin:0;">-</h3>
+                    <span id="cand-profile-status-badge" style="display:inline-block; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; background:#dcfce7; color:#166534;">Verified</span>
+                  </div>
+                  <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.875rem; color:#475569;">
+                    <span>PSN: <strong id="cand-profile-psn" style="font-family:monospace; color:#0f172a; font-size:1rem;">-</strong></span>
+                    <span>&bull;</span>
+                    <span>MDA: <strong id="cand-profile-mda" style="color:#0f172a;">-</strong></span>
+                    <span>&bull;</span>
+                    <span>Group: <strong id="cand-profile-group" style="color:#0f172a;">-</strong></span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-primary-large" style="width:auto; padding:10px 18px; font-size:0.88rem;" onclick="openEditCandidateModal()">
+                  <span>✏️ Edit Officer Details</span>
+                </button>
+                <button type="button" class="btn-ctrl" style="background:#0284c7; color:#fff; border-color:#0369a1; font-weight:700;" onclick="openCandidateQuestionsModal()">
+                  <span>📚 View &amp; Edit Questions (40)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Profile Info Grid -->
+            <div style="padding:22px 24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Cadre &amp; Proposed Rank</div>
+                <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:4px;" id="cand-profile-rank">-</div>
+              </div>
+
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Proposed Grade Level</div>
+                <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:4px;" id="cand-profile-gl">-</div>
+              </div>
+
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Assigned Exam Paper Code</div>
+                <div style="margin-top:4px; display:flex; align-items:center; gap:8px;">
+                  <span class="badge-cadre" id="cand-profile-paper" style="font-size:0.95rem;">-</span>
+                  <button type="button" class="btn-ctrl" style="padding:3px 8px; font-size:0.72rem; font-weight:700; color:#0284c7; border-color:#bae6fd;" onclick="openCandidateQuestionsModal()">
+                    <span>Inspect 40 Qs</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Examination Date &amp; Batch</div>
+                <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:4px;" id="cand-profile-schedule">-</div>
+              </div>
+
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Clearance Code (Code 1)</div>
+                <div style="margin-top:4px;"><code id="cand-profile-code1" style="font-size:1.05rem; font-weight:800; color:#004d40;">-</code></div>
+              </div>
+
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+                <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Contact Phone &amp; Email</div>
+                <div style="font-size:0.9rem; font-weight:600; color:#0f172a; margin-top:4px;" id="cand-profile-contact">-</div>
+              </div>
+
+              <!-- Full-width strip: PIN Status & Submissions Status -->
+              <div style="grid-column:1 / -1; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:10px; padding:16px 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                  <div>
+                    <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">5-Digit Login PIN (Code 2)</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:#0f172a; margin-top:4px;" id="cand-profile-token-info">
+                      No active PIN bound
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Examination Attempt / Score</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:#004d40; margin-top:4px;" id="cand-profile-submission-info">
+                      Not yet submitted
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn-ctrl" style="background:#fef2f2; border-color:#fca5a5; color:#991b1b; font-weight:700;" onclick="triggerResetFromCandidateCard()">
+                      <span>🔄 Unlock for Retake</span>
+                    </button>
+                    <button type="button" class="btn-ctrl" style="background:#e0f2fe; border-color:#bae6fd; color:#0369a1; font-weight:700;" onclick="viewCandidatePhotocardDirect()">
+                      <span>🖨️ View Photocard</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL 3: Photocard Registrations Table -->
+        <div class="table-responsive" id="wrap-photocards-table" style="display: none;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>S/N</th>
+                <th>Candidate Name</th>
+                <th>PSN</th>
+                <th>Phone Number</th>
+                <th>Email Address</th>
+                <th>MDA</th>
+                <th>Proposed Rank &amp; GL</th>
+                <th>Exam Paper</th>
+                <th>Photocard Generated At</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-photocards-table-body">
+              <tr>
+                <td colspan="10" style="text-align:center; padding: 24px; color:#64748b;">Loading verified registrations...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PANEL 4: Scratch Card Tokens Pool View -->
+        <div id="wrap-tokens-panel" style="display: none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+            <div>
+              <h3 style="font-size:1.1rem; font-weight:800; color:#0f172a; margin:0 0 4px 0;">Official 5-Digit Examination Login PINs</h3>
+              <p style="font-size:0.85rem; color:#64748b; margin:0;">3,500 Single-use cryptographic PINs issued to invigilators and candidates on examination day.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-ctrl" style="background:#004d40; color:#fff;" onclick="openAdminTokensModal()">
+                <span>🔍 Inspect &amp; Print PIN Slips</span>
+              </button>
+              <a href="/api/admin/tokens/excel" class="btn-ctrl" style="background:#107c41; color:#fff; text-decoration:none;">
+                <span>📥 Download Tokens Excel</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 6: Admin Login Modal                                -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="admin-login-modal">
+      <div class="modal-card" style="max-width: 420px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #fff;">
+          <h3 style="color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>🔒 Admin Authentication</span>
+          </h3>
+        </div>
+        <div class="modal-body" style="padding: 24px;">
+          <p style="font-size: 0.85rem; color: #475569; margin-bottom: 18px; line-height: 1.5;">
+            Enter administrator credentials to sign in. Both Full Administrator (<code>admin</code>) and PSN Reset Officer (<code>reset_admin</code>) logins are supported.
+          </p>
+
+          <form id="form-admin-login">
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label for="admin-user">Administrator Username</label>
+              <input type="text" id="admin-user" class="form-control" placeholder="Username" required autocomplete="username">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label for="admin-pass">Password</label>
+              <input type="password" id="admin-pass" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+
+            <div id="admin-login-error" style="display:none; color:#dc2626; background:#fee2e2; padding:10px; border-radius:6px; font-size:0.85rem; margin-bottom:14px;">
+              Invalid username or password.
+            </div>
+
+            <button type="submit" id="btn-admin-submit-login" class="btn-primary-large" style="padding: 12px;">
+              <span>🔑 Sign In</span>
+            </button>
+          </form>
+        </div>
+        <div class="modal-footer" style="padding: 12px 20px;">
+          <button type="button" class="btn-ctrl" onclick="closeAdminLoginModal()">
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW: Mandatory Homepage Examination Instructions Modal   -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="homepage-instructions-modal" style="z-index: 1080;" onclick="if (event.target === this) closeHomepageInstructionsModal()">
+      <div class="modal-card" style="max-width: 440px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; text-align: left; padding: 0; position: relative; border: 2px solid #004d40; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+        
+        <!-- Modal Header -->
+        <div style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #fff; padding: 10px 14px; border-bottom: 2.5px solid #ffb300; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0;">
+              📢
+            </div>
+            <div>
+              <h3 style="font-size: 0.88rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.15;">
+                Nigerian Content Development and Monitoring Board (NCDMB)
+              </h3>
+              <p style="font-size: 0.65rem; font-weight: 700; color: #fde68a; margin: 1px 0 0 0; text-transform: uppercase;">
+                2026 Promotion CBT Notice
+              </p>
+            </div>
+          </div>
+          <button type="button" onclick="closeHomepageInstructionsModal()" style="background: rgba(255, 255, 255, 0.2); border: none; width: 26px; height: 26px; border-radius: 50%; font-size: 1.1rem; line-height: 1; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Close Notice">&times;</button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div style="padding: 10px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 0.77rem; line-height: 1.35;">
+          
+          <!-- Venue -->
+          <div style="background: #f0fdf4; border-left: 3.5px solid #16a34a; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #166534; font-size: 0.68rem; text-transform: uppercase;">📍 Examination Venue</div>
+            <div style="font-weight: 800; color: #004d40; font-size: 0.8rem;">Nigerian Content Tower (NCT), Ox-Bow Lake, Swali, Yenagoa, Bayelsa State</div>
+          </div>
+
+          <!-- Phone & Browser -->
+          <div style="background: #eff6ff; border-left: 3.5px solid #2563eb; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #1e40af; font-size: 0.68rem; text-transform: uppercase;">📱 Smartphone & Data Bundle</div>
+            <p style="margin: 1px 0 0 0; color: #1e3a8a; font-size: 0.76rem;">Bring a <strong>fully charged phone</strong> (Android or iOS) with an <strong>active internet data subscription</strong> and updated browser.</p>
+          </div>
+
+          <!-- Printed Photocard -->
+          <div style="background: #fef2f2; border-left: 3.5px solid #dc2626; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #991b1b; font-size: 0.68rem; text-transform: uppercase;">🖨️ Mandatory Printed Photocard</div>
+            <p style="margin: 1px 0 0 0; color: #7f1d1d; font-size: 0.76rem;"><strong>PRINT YOUR PHOTOCARD IN ADVANCE.</strong> No printing at venue. Screenshots are strictly disallowed.</p>
+          </div>
+
+          <!-- Zero Loitering -->
+          <div style="background: #fffbeb; border-left: 3.5px solid #d97706; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #92400e; font-size: 0.68rem; text-transform: uppercase;">⏱️ Punctuality & Zero Loitering</div>
+            <p style="margin: 1px 0 0 0; color: #78350f; font-size: 0.76rem;">Arrive at your scheduled accreditation time (max 20 mins early). <strong>No loitering around the vicinity.</strong></p>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 8px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn-primary-large" style="padding: 8px 12px; font-size: 0.84rem; width: 100%; font-weight: 800; border-radius: 6px;" onclick="closeHomepageInstructionsModal()">
+            <span>✅ I Understand & Proceed to Portal</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW: Mandatory Candidate Examination Instructions Modal-->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="photocard-instructions-modal">
+      <div class="modal-card" style="max-width: 440px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; text-align: left; padding: 0; position: relative; border: 2px solid #004d40; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+        
+        <!-- Modal Header -->
+        <div style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #fff; padding: 10px 14px; border-bottom: 2.5px solid #ffb300; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0;">
+              ⚠️
+            </div>
+            <div>
+              <h3 style="font-size: 0.88rem; font-weight: 800; color: #fff; margin: 0; line-height: 1.15;">
+                Nigerian Content Development and Monitoring Board (NCDMB)
+              </h3>
+              <p style="font-size: 0.65rem; font-weight: 700; color: #fde68a; margin: 1px 0 0 0; text-transform: uppercase;">
+                Mandatory Venue Rules & Instructions
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div style="padding: 10px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 0.77rem; line-height: 1.35;">
+          
+          <!-- Venue -->
+          <div style="background: #f0fdf4; border-left: 3.5px solid #16a34a; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #166534; font-size: 0.68rem; text-transform: uppercase;">📍 Examination Venue</div>
+            <div style="font-weight: 800; color: #004d40; font-size: 0.8rem;">Nigerian Content Tower (NCT), Ox-Bow Lake, Swali, Yenagoa, Bayelsa State</div>
+          </div>
+
+          <!-- Phone & Browser -->
+          <div style="background: #eff6ff; border-left: 3.5px solid #2563eb; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #1e40af; font-size: 0.68rem; text-transform: uppercase;">📱 Smartphone & Data Bundle</div>
+            <p style="margin: 1px 0 0 0; color: #1e3a8a; font-size: 0.76rem;">Bring a <strong>fully charged phone</strong> (Android or iOS) with an <strong>active internet data subscription</strong> and updated browser.</p>
+          </div>
+
+          <!-- Printed Photocard -->
+          <div style="background: #fef2f2; border-left: 3.5px solid #dc2626; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #991b1b; font-size: 0.68rem; text-transform: uppercase;">🖨️ Mandatory Printed Photocard</div>
+            <p style="margin: 1px 0 0 0; color: #7f1d1d; font-size: 0.76rem;"><strong>PRINT YOUR PHOTOCARD IN ADVANCE.</strong> No printing at venue. Screenshots are strictly disallowed.</p>
+          </div>
+
+          <!-- Zero Loitering -->
+          <div style="background: #fffbeb; border-left: 3.5px solid #d97706; border-radius: 5px; padding: 5px 8px;">
+            <div style="font-weight: 800; color: #92400e; font-size: 0.68rem; text-transform: uppercase;">⏱️ Punctuality & Zero Loitering</div>
+            <p style="margin: 1px 0 0 0; color: #78350f; font-size: 0.76rem;">Arrive at your scheduled accreditation time (max 20 mins early). <strong>No loitering around the vicinity.</strong></p>
+          </div>
+
+          <!-- Mandatory Acknowledgment Checkbox -->
+          <div style="margin-top: 2px; padding: 6px 8px; background: #f8fafc; border-radius: 6px; border: 1.5px solid #cbd5e1;">
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 0.74rem; font-weight: 700; color: #0f172a; line-height: 1.3;">
+              <input type="checkbox" id="chk-acknowledge-rules" style="margin-top: 2px; width: 17px; height: 17px; cursor: pointer; flex-shrink: 0;" onchange="toggleAckButton()">
+              <span>I have read, understood, and agree to strictly abide by all examination venue rules, arrival time, and smartphone directives.</span>
+            </label>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 8px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" id="btn-ack-rules" class="btn-primary-large" style="padding: 8px 12px; font-size: 0.84rem; width: 100%; font-weight: 800; border-radius: 6px; opacity: 0.5; cursor: not-allowed;" disabled onclick="closeInstructionsModalAndShowPhotocard()">
+            <span>✅ I Acknowledge & View My Photocard</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 7: Beautiful Custom Alert / Notice Modal            -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="custom-alert-modal" style="z-index: 1050;">
+      <div class="modal-card" style="max-width: 460px; text-align: center; padding: 28px 24px; position: relative;">
+        <div id="alert-modal-icon" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px auto; background: #fee2e2; color: #dc2626;">
+          ⛔
+        </div>
+        <h3 id="alert-modal-title" style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 10px;">
+          Notice
+        </h3>
+        <div id="alert-modal-msg" style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin-bottom: 24px; padding: 0 8px;">
+          Alert message content goes here.
+        </div>
+        <div id="alert-modal-actions" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+          <button type="button" class="btn-primary-large" id="alert-modal-ok-btn" style="padding: 12px; font-size: 0.95rem; width: 100%;" onclick="closeAlertModal()">
+            <span>Understood</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 7B: Beautiful Custom Confirmation Modal             -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="custom-confirm-modal" style="z-index: 1060;" onclick="if (event.target === this) handleConfirmModalChoice(false)">
+      <div class="modal-card" style="max-width: 460px; text-align: center; padding: 28px 24px; position: relative;">
+        <div id="confirm-modal-icon" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px auto; background: #fee2e2; color: #dc2626;">
+          ⚠️
+        </div>
+        <h3 id="confirm-modal-title" style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 10px;">
+          Confirm Action
+        </h3>
+        <div id="confirm-modal-msg" style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin-bottom: 24px; padding: 0 8px;">
+          Are you sure you want to proceed?
+        </div>
+        <div id="confirm-modal-actions" style="display: flex; gap: 12px; width: 100%;">
+          <button type="button" class="btn-ctrl" id="confirm-modal-cancel-btn" style="flex: 1; padding: 12px; font-size: 0.95rem; justify-content: center; border-color: #cbd5e1; font-weight: 600;" onclick="handleConfirmModalChoice(false)">
+            <span>Cancel</span>
+          </button>
+          <button type="button" class="btn-primary-large" id="confirm-modal-ok-btn" style="flex: 1; padding: 12px; font-size: 0.95rem; background: #dc2626; border-color: #b91c1c; font-weight: 700;" onclick="handleConfirmModalChoice(true)">
+            <span id="confirm-modal-ok-text">Yes, Proceed</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 8: Live Webcam Capture Modal                        -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="webcam-modal">
+      <div class="modal-card" style="max-width: 440px; text-align: center; padding: 24px;">
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">
+          📸 Live Webcam Passport Snapshot
+        </h3>
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 16px;">
+          Position your face clearly within the frame under proper lighting.
+        </p>
+        <div style="position: relative; width: 280px; height: 320px; margin: 0 auto 16px auto; border-radius: 12px; overflow: hidden; background: #000; border: 2px solid #004d40;">
+          <video id="webcam-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+          <div style="position: absolute; top: 15px; left: 25px; right: 25px; bottom: 25px; border: 2px dashed rgba(255,255,255,0.7); border-radius: 8px; pointer-events: none;"></div>
+        </div>
+        <canvas id="webcam-canvas" width="280" height="320" style="display: none;"></canvas>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" class="btn-primary-large" style="padding: 10px 22px; width: auto;" onclick="captureWebcamPhoto()">
+            <span>📸 Capture Snapshot</span>
+          </button>
+          <button type="button" class="btn-ctrl" style="padding: 10px 18px;" onclick="closeWebcamModal()">
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 9: Admin Exam Tokens Slips Modal (Printable)        -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="admin-tokens-modal">
+      <div class="modal-card" style="max-width: 760px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #fff;">
+          <h3 style="color:#fff;">🎟️ Examination Scratch Card Tokens (Hall Slips)</h3>
+        </div>
+        <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
+          <p style="font-size: 0.85rem; color: #475569; margin-bottom: 14px;">
+            These are pure 5-digit unassigned exam tokens from the secure pool. Invigilators can print, cut, and distribute them to candidates in the CBT hall. At first login, the token permanently binds to the candidate's PSN.
+          </p>
+          <div id="admin-tokens-grid" class="token-slips-grid">
+            <div style="text-align: center; color: #64748b; padding: 24px; grid-column: 1 / -1;">Loading tokens...</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ctrl btn-submit" onclick="printTokenSlips()">
+            <span>🖨️ Print Token Slips Sheet</span>
+          </button>
+          <button type="button" class="btn-ctrl" onclick="closeAdminTokensModal()">
+            <span>Close</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 10: Admin Candidate Reset / Retake Modal            -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="admin-reset-modal">
+      <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header" style="background: #b91c1c; color: #fff;">
+          <h3 style="color:#fff;">🔄 Admin Candidate Retake Reset</h3>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+          <p style="font-size: 0.85rem; color: #475569; margin-bottom: 14px;">
+            Enter the officer's PSN to archive any previous incomplete/failed attempt and unlock them for a clean re-examination session.
+          </p>
+          <div class="form-group">
+            <label for="admin-reset-psn">Candidate PSN</label>
+            <input type="text" id="admin-reset-psn" class="form-control" placeholder="e.g. 138777" required>
+          </div>
+          <div class="form-group">
+            <label for="admin-reset-reason">Reason for Reset / Invigilator Note</label>
+            <input type="text" id="admin-reset-reason" class="form-control" placeholder="e.g. Technical system disruption during session">
+          </div>
+          <div id="admin-reset-msg" style="display:none; padding: 10px; border-radius: 6px; font-size: 0.85rem; margin-top: 10px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ctrl" onclick="closeAdminResetModal()">
+            <span>Cancel</span>
+          </button>
+          <button type="button" class="btn-ctrl" style="background:#dc2626; color:#fff; border-color:#b91c1c;" onclick="executeAdminCandidateReset()">
+            <span>Execute Reset & Unlock PSN</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW: Admin Edit Candidate Details Modal                -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="admin-edit-candidate-modal" style="z-index: 1090;">
+      <div class="modal-card" style="max-width: 680px; width: 95%; max-height: 92vh; display: flex; flex-direction: column; text-align: left; padding: 0;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #fff; padding: 14px 20px;">
+          <div>
+            <h3 style="color:#fff; font-size:1.15rem; font-weight:800; margin:0;">✏️ Edit Officer Candidate Details</h3>
+            <p style="font-size:0.75rem; color:#fde68a; margin:2px 0 0 0;">Updating records directly in the official database</p>
+          </div>
+          <button type="button" class="btn-ctrl" style="background:rgba(255,255,255,0.2); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:1.2rem; cursor:pointer;" onclick="closeEditCandidateModal()">&times;</button>
+        </div>
+
+        <form id="form-admin-edit-candidate" onsubmit="event.preventDefault(); saveCandidateDetails();" style="display:flex; flex-direction:column; overflow:hidden; flex:1;">
+          <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
+            <input type="hidden" id="edit-cand-original-psn">
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+              <div class="form-group">
+                <label for="edit-cand-name">Officer Full Name</label>
+                <input type="text" id="edit-cand-name" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-psn">
+                  PSN (Personal Sub-Number)
+                  <span style="font-size:0.7rem; color:#0284c7; font-weight:normal;">(Cascades to tokens &amp; submissions)</span>
+                </label>
+                <input type="text" id="edit-cand-psn" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-mda">Ministry / Department / Agency (MDA)</label>
+                <input type="text" id="edit-cand-mda" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-rank">Proposed Cadre / Rank</label>
+                <input type="text" id="edit-cand-rank" class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-gl">Proposed Grade Level</label>
+                <input type="text" id="edit-cand-gl" class="form-control" placeholder="e.g. 08, 09, 10, 12, 13, 14, 15, 16, 17">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-group">Group Category</label>
+                <input type="text" id="edit-cand-group" class="form-control" placeholder="e.g. GROUP A, GROUP B, GROUP C, GROUP D">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-paper">
+                  Assigned Exam Paper Code
+                  <span style="font-size:0.7rem; color:#b45309; font-weight:normal;">(Determines examination questions)</span>
+                </label>
+                <input type="text" id="edit-cand-paper" class="form-control" placeholder="e.g. OHOS/B1, HMB/A3, KWSUTH/B4" required>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-code1">Clearance Code (Code 1)</label>
+                <input type="text" id="edit-cand-code1" class="form-control" placeholder="e.g. B-75556">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-batch">Examination Batch / Session</label>
+                <input type="text" id="edit-cand-batch" class="form-control" placeholder="e.g. Session 1, Session 2">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-time">Examination Time</label>
+                <input type="text" id="edit-cand-time" class="form-control" placeholder="e.g. 10:00 AM - 11:00 AM">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-accred">Accreditation Time</label>
+                <input type="text" id="edit-cand-accred" class="form-control" placeholder="e.g. 09:30 AM">
+              </div>
+
+              <div class="form-group">
+                <label for="edit-cand-phone">Phone Number</label>
+                <input type="tel" id="edit-cand-phone" class="form-control" placeholder="e.g. 08012345678">
+              </div>
+
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="edit-cand-email">Email Address</label>
+                <input type="email" id="edit-cand-email" class="form-control" placeholder="e.g. officer@cbt.kw.gov.ng">
+              </div>
+            </div>
+
+            <div id="admin-edit-msg" style="display:none; padding:12px 14px; border-radius:8px; font-size:0.875rem; margin-top:16px;"></div>
+          </div>
+
+          <div class="modal-footer" style="padding: 14px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+            <button type="button" class="btn-ctrl" onclick="closeEditCandidateModal()">
+              <span>Cancel</span>
+            </button>
+            <button type="submit" id="btn-save-cand-details" class="btn-primary-large" style="width:auto; padding:10px 24px;">
+              <span>💾 Save Candidate Details</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW: Admin Questions Inspector & Editor Modal            -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="admin-questions-modal" style="z-index: 1095;">
+      <div class="modal-card" style="max-width: 960px; width: 96%; height: 92vh; display: flex; flex-direction: column; text-align: left; padding: 0;">
+        <!-- Modal Header -->
+        <div class="modal-header" style="background: linear-gradient(135deg, #004d40 0%, #00796b 100%); color: #fff; padding: 14px 20px; flex-shrink: 0; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="color:#fff; font-size:1.15rem; font-weight:800; margin:0;" id="admin-qmodal-title">
+              📚 Examination Questions Editor
+            </h3>
+            <p style="font-size:0.75rem; color:#fde68a; margin:3px 0 0 0;" id="admin-qmodal-subtitle">
+              Loading candidate cadre paper...
+            </p>
+          </div>
+          <button type="button" class="btn-ctrl" style="background:rgba(255,255,255,0.2); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:1.2rem; cursor:pointer;" onclick="closeCandidateQuestionsModal()">&times;</button>
+        </div>
+
+        <!-- Sticky Control Bar: Search & Question Navigator -->
+        <div style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; padding: 10px 20px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <input type="text" id="admin-qmodal-search" class="form-control" placeholder="🔍 Search within questions..." style="max-width: 320px; font-size: 0.85rem;" oninput="filterQuestionsModalList()">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span id="admin-qmodal-counter" style="font-size: 0.8rem; font-weight: 700; color: #475569;">Questions Loaded</span>
+              <button type="button" class="btn-primary-large" style="width: auto; padding: 8px 16px; font-size: 0.82rem;" id="btn-batch-save-questions" onclick="saveAllQuestionsModal()">
+                <span>💾 Save All Questions</span>
+              </button>
+            </div>
+          </div>
+          <!-- 1..40 Question Pill Navigator -->
+          <div id="admin-qmodal-nav" class="q-nav-strip">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Scrollable Questions Container -->
+        <div class="modal-body" id="admin-qmodal-list" style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; background: #f1f5f9;">
+          <div style="text-align: center; color: #64748b; padding: 40px;">
+            <div class="spinner-small" style="margin: 0 auto 12px auto; width: 32px; height: 32px; border-width: 3px;"></div>
+            Loading questions for candidate's paper...
+          </div>
+        </div>
+
+        <!-- Sticky Footer -->
+        <div class="modal-footer" style="padding: 12px 20px; background: #fff; border-top: 1.5px solid #e2e8f0; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn-ctrl" onclick="closeCandidateQuestionsModal()">
+            <span>✖️ Close</span>
+          </button>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span id="admin-qmodal-save-status" style="font-size: 0.85rem; font-weight: 600; color: #047857; display:none;"></span>
+            <button type="button" class="btn-primary-large" style="width: auto; padding: 10px 22px; font-size: 0.9rem;" onclick="saveAllQuestionsModal()">
+              <span>💾 Save All Questions</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  
+    <!-- ======================================================== -->
+    <!-- VIEW 11: Offline Submission Recovery Modal               -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="offline-submit-modal" style="z-index: 1070; display:none;">
+      <div class="modal-card" style="max-width: 480px; text-align: center; padding: 28px 24px;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 16px auto; background: #fffbeb; color: #b45309; border: 2px solid #fde68a;">
+          📡
+        </div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 10px;">
+          Internet Connection Interrupted
+        </h3>
+        <div style="background: #f0fdf4; border-radius: 8px; padding: 12px; margin-bottom: 16px; border: 1px solid #bbf7d0; font-size: 0.85rem; color: #166534; text-align: left;">
+          🛡️ <strong>Your answers are 100% safe!</strong><br>
+          All <span id="offline-saved-count" style="font-weight:800;">40</span> answers are securely saved in this device's memory. You will not lose your score or progress.
+        </div>
+        <p id="offline-submit-status" style="font-size: 0.9rem; color: #475569; line-height: 1.5; margin-bottom: 20px;">
+          The system is automatically waiting for the network to restore. Once reconnected, your submission will complete immediately.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+          <button type="button" class="btn-primary-large" id="btn-offline-retry" style="padding: 12px; font-size: 0.95rem; width: 100%; background: #004d40;" onclick="retryOfflineSubmission()">
+            <span>🔄 Tap to Retry Submission Now</span>
+          </button>
+          <button type="button" class="btn-ctrl" style="padding: 10px; font-size: 0.85rem; width: 100%; justify-content: center;" onclick="checkNetworkAndNotify()">
+            <span>📶 Check Network Connection</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 12: Instant Screen Shield & Anti-Capture Curtain    -->
+    <!-- ======================================================== -->
+    <div id="security-curtain" class="security-curtain" style="display:none !important;">
+      <div class="security-curtain-card">
+        <div class="security-curtain-icon">🛡️</div>
+        <h2>EXAMINATION SCREEN</h2>
+        <p>Examination in progress.</p>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 13: Anti-Cheating Security Violation Modal          -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="security-violation-modal" style="display:none; z-index: 100000;">
+    </div>
+
+    </main>
+
+  <script src="/static/js/cbt.js?v=20261107_v4"></script>
+</body>
+</html>

@@ -1,0 +1,3667 @@
+/**
+ * Nigerian Content Development and Monitoring Board (NCDMB) - 2026 Promotion Evaluation CBT Examination
+ */
+
+// Application State
+const state = {
+  candidate: null,
+  candidateId: null,
+  registeredCandidate: null,
+  tempPassportBase64: null,
+  webcamStream: null,
+  questions: [],
+  currentIndex: 0,
+  answers: {}, // { "1": "A", "2": "C" }
+  flagged: new Set(), // Set of question numbers (1-50)
+  durationSeconds: 20 * 60,
+  secondsRemaining: 20 * 60,
+  timerInterval: null,
+  adminToken: sessionStorage.getItem('kws_admin_token') || (function() {
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)admin_token=([^;]*)/);
+      return match ? decodeURIComponent(match[1]) : null;
+    } catch (e) {
+      return null;
+    }
+  })(),
+  adminRole: (() => {
+    try {
+      return sessionStorage.getItem('kws_admin_role') || 'superadmin';
+    } catch (e) {
+      return 'superadmin';
+    }
+  })(),
+  adminUser: (() => {
+    try {
+      return sessionStorage.getItem('kws_admin_user') || 'admin';
+    } catch (e) {
+      return 'admin';
+    }
+  })(),
+  adminSubmissions: [],
+  adminRegistrations: [],
+  adminTableView: 'submissions',
+  adminTokensSummary: null,
+  examStatus: 'open',
+  antiCheatStatus: 'enabled',
+  antiCheatEnabled: true
+};
+
+function syncAdminSessionCookie() {
+  if (state.adminToken) {
+    try {
+      document.cookie = `admin_token=${encodeURIComponent(state.adminToken)}; path=/; max-age=604800; SameSite=Lax`;
+    } catch (e) {}
+  }
+}
+
+function applyAdminRolePermissions() {
+  const role = state.adminRole || sessionStorage.getItem('kws_admin_role') || 'superadmin';
+  const isResetOnly = (role === 'reset_psn');
+
+  // Role Badge in Admin Header
+  let badge = document.getElementById('admin-role-badge');
+  if (!badge) {
+    const headerTitle = document.querySelector('.admin-header h2');
+    if (headerTitle) {
+      badge = document.createElement('span');
+      badge.id = 'admin-role-badge';
+      headerTitle.appendChild(badge);
+    }
+  }
+  if (badge) {
+    if (isResetOnly) {
+      badge.innerHTML = `<span style="display:inline-block; font-size:0.75rem; background:#fee2e2; color:#991b1b; padding:4px 12px; border-radius:999px; margin-left:12px; font-weight:800; border:1px solid #f87171; letter-spacing:0.03em;">🔑 PSN RESET OFFICER ONLY</span>`;
+    } else {
+      badge.innerHTML = `<span style="display:inline-block; font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:4px 12px; border-radius:999px; margin-left:12px; font-weight:800; border:1px solid #7dd3fc; letter-spacing:0.03em;">⭐ FULL ADMINISTRATOR</span>`;
+    }
+  }
+
+  // Toggle Exam Status Bar
+  const controlBar = document.querySelector('.admin-control-bar');
+  if (controlBar) {
+    controlBar.style.display = isResetOnly ? 'none' : 'flex';
+  }
+
+  // Hide export / download links for reset-only admin
+  const exportIds = [
+    'btn-download-photocards',
+    'btn-download-roster',
+    'btn-view-slips',
+    'btn-view-tokens',
+    'btn-download-excel',
+    'btn-download-csv',
+    'btn-download-tokens'
+  ];
+  exportIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isResetOnly ? 'none' : 'inline-flex';
+  });
+
+  // Hide Reset All PINs button
+  const resetAllBtn = document.querySelector('button[onclick="confirmResetAllTokens()"]');
+  if (resetAllBtn) {
+    resetAllBtn.style.display = isResetOnly ? 'none' : 'inline-flex';
+  }
+}
+
+function updateAdminDownloadLinks() {
+  if (!state.adminToken) return;
+  syncAdminSessionCookie();
+  const tokenParam = `?token=${encodeURIComponent(state.adminToken)}`;
+  const btnExcel = document.getElementById('btn-download-excel');
+  const btnCsv = document.getElementById('btn-download-csv');
+  const btnRoster = document.getElementById('btn-download-roster');
+  const btnPhotocards = document.getElementById('btn-download-photocards');
+  const btnTokens = document.getElementById('btn-download-tokens');
+  if (btnExcel) btnExcel.href = `/api/results/excel${tokenParam}`;
+  if (btnCsv) btnCsv.href = `/api/results/csv${tokenParam}`;
+  if (btnRoster) btnRoster.href = `/api/admin/roster/excel${tokenParam}`;
+  if (btnPhotocards) btnPhotocards.href = `/api/admin/registrations/excel${tokenParam}`;
+  if (btnTokens) btnTokens.href = `/api/admin/tokens/excel${tokenParam}`;
+}
+
+syncAdminSessionCookie();
+
+// DOM Elements
+const views = {
+  entry: document.getElementById('view-entry'),
+  photocard: document.getElementById('view-photocard'),
+  exam: document.getElementById('view-exam'),
+  result: document.getElementById('view-result'),
+  admin: document.getElementById('view-admin')
+};
+
+// ============================================================================
+// LOW-BANDWIDTH & OFFLINE-FIRST RESILIENCE ENGINE
+// ============================================================================
+
+let pendingSubmissionPayload = null;
+let offlineSubmitInterval = null;
+
+// Robust Fetch with Auto-Retry and Exponential Backoff for Minimal / Poor Internet
+async function fetchWithRetry(url, options = {}, maxRetries = 3, baseDelayMs = 1200) {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 16000);
+      const fetchOpts = { ...options, signal: controller.signal };
+      
+      const res = await fetch(url, fetchOpts);
+      clearTimeout(timeoutId);
+      
+      if ([502, 503, 504].includes(res.status) && attempt < maxRetries) {
+        throw new Error(`Server temporarily congested (HTTP ${res.status})`);
+      }
+      
+      removeRetryToast();
+      return res;
+    } catch (err) {
+      attempt++;
+      if (attempt > maxRetries) {
+        removeRetryToast();
+        throw err;
+      }
+      const isTimeout = err.name === 'AbortError';
+      const reason = isTimeout ? 'Slow network response' : (err.message || 'Signal fluctuating');
+      showRetryToast(`⚠️ Weak internet detected (${reason}). Reconnecting automatically (Attempt ${attempt}/${maxRetries})...`);
+      
+      const delay = (baseDelayMs * Math.pow(1.8, attempt - 1)) + (Math.random() * 400);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
+function showRetryToast(msg) {
+  let toast = document.getElementById('cbt-network-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cbt-network-toast';
+    toast.className = 'network-retry-toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span class="network-dot" style="background:#f59e0b; width:10px; height:10px; flex-shrink:0;"></span> <span style="line-height:1.4;">${msg}</span>`;
+  toast.style.display = 'flex';
+}
+
+function removeRetryToast() {
+  const toast = document.getElementById('cbt-network-toast');
+  if (toast) toast.style.display = 'none';
+}
+
+// Local Storage Key Helpers
+function getSessionStorageKey(psn) {
+  return `kws_cbt_session_${psn || (state.candidate ? state.candidate.psn : 'current')}`;
+}
+function getPendingSubKey(psn) {
+  return `kws_cbt_pending_sub_${psn || (state.candidate ? state.candidate.psn : 'current')}`;
+}
+
+// Continuous Auto-Save to LocalStorage
+function saveExamProgress() {
+  if (!state.candidate || !state.questions || state.questions.length === 0 || state.isSubmitted) return;
+  try {
+    const key = getSessionStorageKey(state.candidate.psn);
+    const sessionData = {
+      candidate: state.candidate,
+      candidateId: state.candidateId,
+      questions: state.questions,
+      currentIndex: state.currentIndex,
+      answers: state.answers,
+      flagged: Array.from(state.flagged),
+      durationSeconds: state.durationSeconds,
+      secondsRemaining: state.secondsRemaining,
+      lastSavedTimestamp: Date.now()
+    };
+    localStorage.setItem(key, JSON.stringify(sessionData));
+  } catch (e) {
+    console.warn('localStorage auto-save warning:', e);
+  }
+}
+
+// Clear Storage on Verified Final Submission
+function clearExamProgress(psn) {
+  try {
+    const key = getSessionStorageKey(psn);
+    const subKey = getPendingSubKey(psn);
+    localStorage.removeItem(key);
+    localStorage.removeItem(subKey);
+  } catch (e) {}
+}
+
+// Restore Active Session If Interrupted
+function checkAndRestoreSession(psn) {
+  try {
+    const key = getSessionStorageKey(psn);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    
+    // Check if within time
+    const elapsedSeconds = Math.floor((Date.now() - (data.lastSavedTimestamp || Date.now())) / 1000);
+    const adjustedRemaining = Math.max(0, data.secondsRemaining - elapsedSeconds);
+    if (adjustedRemaining <= 0) {
+      return null;
+    }
+    data.secondsRemaining = adjustedRemaining;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Network Status Indicator Updates
+function updateNetworkStatusIndicator() {
+  const badge = document.getElementById('exam-network-status');
+  const text = document.getElementById('network-status-text');
+  if (!badge || !text) return;
+  
+  if (navigator.onLine) {
+    badge.className = 'network-status-badge online';
+    text.textContent = 'Connected';
+    badge.title = 'Internet active. Questions and answers sync smoothly.';
+  } else {
+    badge.className = 'network-status-badge offline';
+    text.textContent = 'Offline (Answers Safe)';
+    badge.title = 'Internet interrupted. All answers are 100% saved locally on this device.';
+  }
+}
+
+window.addEventListener('online', () => {
+  updateNetworkStatusIndicator();
+  removeRetryToast();
+  const pendingModal = document.getElementById('offline-submit-modal');
+  if (pendingModal && pendingModal.style.display === 'flex') {
+    retryOfflineSubmission(true);
+  }
+});
+
+window.addEventListener('offline', () => {
+  updateNetworkStatusIndicator();
+  showRetryToast('⚠️ Internet connection disconnected. You may continue answering — your progress is safely stored in local memory.');
+});
+
+
+// Custom Alert Modal System
+function showAlertModal(title, message, type = 'warning') {
+  const modal = document.getElementById('custom-alert-modal');
+  const titleEl = document.getElementById('alert-modal-title');
+  const msgEl = document.getElementById('alert-modal-msg');
+  const iconEl = document.getElementById('alert-modal-icon');
+  const okBtn = document.getElementById('alert-modal-ok-btn');
+
+  if (!modal) return;
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+
+  if (type === 'error') {
+    iconEl.textContent = '⛔';
+    iconEl.style.background = '#fee2e2';
+    iconEl.style.color = '#dc2626';
+  } else if (type === 'timer') {
+    iconEl.textContent = '⏱️';
+    iconEl.style.background = '#fffbeb';
+    iconEl.style.color = '#d97706';
+  } else if (type === 'info') {
+    iconEl.textContent = 'ℹ️';
+    iconEl.style.background = '#e0f2fe';
+    iconEl.style.color = '#0284c7';
+  } else if (type === 'success') {
+    iconEl.textContent = '✅';
+    iconEl.style.background = '#d1fae5';
+    iconEl.style.color = '#059669';
+  } else {
+    iconEl.textContent = '⚠️';
+    iconEl.style.background = '#fef3c7';
+    iconEl.style.color = '#b45309';
+  }
+
+  modal.classList.add('active');
+  if (okBtn) okBtn.focus();
+}
+
+function closeAlertModal() {
+  const modal = document.getElementById('custom-alert-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Custom Confirmation Modal System (Promise-based)
+let confirmModalResolver = null;
+
+function showConfirmModal(title, message, options = {}) {
+  const {
+    type = 'danger',
+    confirmText = 'Yes, Proceed',
+    cancelText = 'Cancel',
+    confirmBg = '#dc2626'
+  } = options;
+
+  const modal = document.getElementById('custom-confirm-modal');
+  const titleEl = document.getElementById('confirm-modal-title');
+  const msgEl = document.getElementById('confirm-modal-msg');
+  const iconEl = document.getElementById('confirm-modal-icon');
+  const okBtn = document.getElementById('confirm-modal-ok-btn');
+  const okTextEl = document.getElementById('confirm-modal-ok-text');
+  const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+
+  if (!modal) {
+    return Promise.resolve(window.confirm(message));
+  }
+
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  if (okTextEl) okTextEl.textContent = confirmText;
+  if (cancelBtn) {
+    const cancelSpan = cancelBtn.querySelector('span');
+    if (cancelSpan) cancelSpan.textContent = cancelText;
+  }
+
+  if (iconEl) {
+    if (type === 'danger' || type === 'error') {
+      iconEl.textContent = '⚠️';
+      iconEl.style.background = '#fee2e2';
+      iconEl.style.color = '#dc2626';
+    } else if (type === 'success') {
+      iconEl.textContent = '✅';
+      iconEl.style.background = '#d1fae5';
+      iconEl.style.color = '#059669';
+    } else if (type === 'info') {
+      iconEl.textContent = 'ℹ️';
+      iconEl.style.background = '#e0f2fe';
+      iconEl.style.color = '#0284c7';
+    } else {
+      iconEl.textContent = '⚠️';
+      iconEl.style.background = '#fef3c7';
+      iconEl.style.color = '#b45309';
+    }
+  }
+
+  if (okBtn) {
+    okBtn.style.background = confirmBg;
+  }
+
+  modal.classList.add('active');
+  if (okBtn) okBtn.focus();
+
+  return new Promise((resolve) => {
+    confirmModalResolver = resolve;
+  });
+}
+
+function handleConfirmModalChoice(choice) {
+  const modal = document.getElementById('custom-confirm-modal');
+  if (modal) modal.classList.remove('active');
+  if (confirmModalResolver) {
+    const r = confirmModalResolver;
+    confirmModalResolver = null;
+    r(choice);
+  }
+}
+
+// Exit Exam Confirmation Modal
+function openExitModal() {
+  const modal = document.getElementById('exit-exam-modal');
+  if (!modal) return;
+  const total = state.questions.length;
+  const answeredCount = Object.keys(state.answers).length;
+  const exitSubmitBtn = document.getElementById('btn-exit-submit-now');
+  const exitDesc = document.getElementById('exit-modal-desc');
+
+  if (exitSubmitBtn) {
+    if (answeredCount < total) {
+      exitSubmitBtn.style.display = 'none';
+      if (exitDesc) {
+        const remaining = total - answeredCount;
+        exitDesc.innerHTML = `You have answered <strong>${answeredCount} of ${total}</strong> questions (<span style="color:#b45309; font-weight:700;">${remaining} unanswered remaining</span>).<br><br>Under Nigerian Content Development and Monitoring Board (NCDMB) regulations, manual early submission is disabled until all questions are answered.<br><br>You may return to continue your test. When the 20-minute countdown concludes, all your answers will automatically be submitted.`;
+      }
+    } else {
+      exitSubmitBtn.style.display = 'block';
+      if (exitDesc) {
+        exitDesc.innerHTML = `You have answered all <strong>${total} questions</strong>. Are you sure you want to finish and submit your CBT examination now?`;
+      }
+    }
+  }
+  modal.classList.add('active');
+}
+
+function closeExitModal() {
+  const modal = document.getElementById('exit-exam-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Close CBT Exam Session
+function closeExamSession() {
+  if (typeof proctorEngine !== 'undefined') proctorEngine.stop();
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  state.candidate = null;
+  state.candidateId = null;
+  state.questions = [];
+  state.answers = {};
+  state.flagged.clear();
+  state.isSubmitted = false;
+
+  const entryForm = document.getElementById('form-entry');
+  if (entryForm) entryForm.reset();
+
+  window.history.pushState({}, '', '/');
+  showView('entry');
+  switchEntryTab('start');
+  showAlertModal(
+    'CBT Session Closed',
+    'Your CBT examination session has been closed successfully. You can now safely close your browser tab or proceed.',
+    'success'
+  );
+}
+
+// Return to Portal Home from Acknowledgement View
+function returnToPortalHome() {
+  window.history.pushState({}, '', '/');
+  showView('entry');
+  switchEntryTab('start');
+  initPortalStatus();
+}
+
+// Switch Views
+function showView(viewName) {
+  Object.keys(views).forEach(v => {
+    if (views[v]) {
+      views[v].classList.toggle('active', v === viewName);
+    }
+  });
+
+  const navExam = document.getElementById('nav-exam-btn');
+  if (navExam) {
+    navExam.classList.toggle('active', viewName !== 'admin');
+  }
+
+  // Toggle body exam-active class so CSS security print shield targets only the active CBT exam
+  document.body.classList.toggle('exam-active', viewName === 'exam');
+}
+
+// Format Seconds to MM:SS
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+// -------------------------------------------------------------
+// 0. Initialize Exam Status & Routing (/admin support)
+// -------------------------------------------------------------
+async function initPortalStatus() {
+  try {
+    const res = await fetch('/api/info');
+    if (res.ok) {
+      const data = await res.json();
+      state.examStatus = data.exam_status || 'open';
+      applyExamStatusToUI(state.examStatus);
+      if (data.anti_cheat_status) state.antiCheatStatus = data.anti_cheat_status;
+      if (data.anti_cheat_enabled !== undefined) state.antiCheatEnabled = data.anti_cheat_enabled;
+
+      // Dynamic branding from .env
+      if (data.org_name) {
+        document.querySelectorAll('.org-name-text').forEach(el => el.textContent = data.org_name);
+      }
+      if (data.title) {
+        document.querySelectorAll('.exam-title-text').forEach(el => el.textContent = data.title);
+        document.title = `${data.org_name || 'CBT Platform'} - ${data.title}`;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not fetch portal status:', e);
+  }
+}
+
+function applyExamStatusToUI(status) {
+  const tabBtnStart = document.getElementById('tab-btn-start');
+  const contentStart = document.getElementById('tab-content-start');
+  const startBtn = document.getElementById('btn-start-token-exam') || document.getElementById('btn-start-exam');
+  const startBtnText = document.getElementById('btn-start-token-text') || document.getElementById('btn-start-exam-text');
+  const proceedPhotocardBtn = document.getElementById('btn-proceed-exam-from-photocard');
+  const closedNotice = document.getElementById('closed-exam-notice');
+
+  if (status === 'closed') {
+    // 1. Show closed banner on the primary CBT login page
+    if (closedNotice) {
+      closedNotice.style.display = 'block';
+    }
+
+    // 2. Disable login button with prominent closed state text and styling
+    if (startBtn) {
+      startBtn.disabled = true;
+      startBtn.classList.add('disabled');
+      startBtn.style.opacity = '0.7';
+      startBtn.style.cursor = 'not-allowed';
+    }
+    if (startBtnText) {
+      startBtnText.textContent = '🔒 Examination Portal is Currently Closed';
+    }
+
+    // 3. Hide Proceed to Exam button on photocard view
+    if (proceedPhotocardBtn) {
+      proceedPhotocardBtn.style.display = 'none';
+    }
+  } else {
+    // 1. Hide closed notice
+    if (closedNotice) {
+      closedNotice.style.display = 'none';
+    }
+
+    // 2. Enable login button with prominent start text and styling
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.classList.remove('disabled');
+      startBtn.style.opacity = '1';
+      startBtn.style.cursor = 'pointer';
+    }
+    if (startBtnText) {
+      startBtnText.textContent = '🚀 LOGIN & COMMENCE CBT ASSESSMENT (60 MINS)';
+    }
+
+    // 3. Restore Proceed to Exam button on photocard view
+    if (proceedPhotocardBtn) {
+      proceedPhotocardBtn.style.display = '';
+    }
+  }
+}
+
+function checkRoute() {
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+
+  if (path === '/admin' || hash === '#admin') {
+    if (state.adminToken) {
+      showView('admin');
+      applyAdminRolePermissions();
+      updateAdminDownloadLinks();
+      loadAdminSubmissions();
+    } else {
+      showView('entry');
+      openAdminLoginModal();
+    }
+  }
+}
+
+function navigateToExam() {
+  if (state.isSubmitted) {
+    showView('result');
+  } else if (state.candidate && state.questions && state.questions.length > 0) {
+    showView('exam');
+  } else {
+    if (window.location.pathname.toLowerCase() === '/admin') {
+      window.history.pushState({}, '', '/');
+    }
+    showView('entry');
+  }
+}
+
+// -------------------------------------------------------------
+// 1. Candidate Entry Navigation: Registration vs Exam
+// -------------------------------------------------------------
+function switchEntryTab(tab) {
+  let targetTab = (tab === 'register') ? 'register' : 'start';
+
+  const btnRegister = document.getElementById('tab-btn-register');
+  const btnStart = document.getElementById('tab-btn-start');
+
+  const contentRegister = document.getElementById('tab-content-register');
+  const contentStart = document.getElementById('tab-content-start');
+
+  const title = document.getElementById('entry-card-title');
+  const subtitle = document.getElementById('entry-card-subtitle');
+
+  // Reset active classes on tabs (if present)
+  if (btnRegister) btnRegister.classList.toggle('active', targetTab === 'register');
+  if (btnStart) btnStart.classList.toggle('active', targetTab === 'start');
+
+  // Switch content visibility
+  if (contentRegister) contentRegister.style.display = (targetTab === 'register') ? 'block' : 'none';
+  if (contentStart) contentStart.style.display = (targetTab === 'start') ? 'block' : 'none';
+
+  if (targetTab === 'register') {
+    if (title) title.textContent = 'Candidate Verification & Photocard';
+    if (subtitle) subtitle.textContent = 'Verify your promotion candidate record, upload passport photo, and generate your official CBT photocard';
+    const inputRegPsn = document.getElementById('reg-input-psn');
+    if (inputRegPsn) inputRegPsn.focus();
+  } else {
+    if (title) title.textContent = 'CBT Examination Login';
+    if (subtitle) subtitle.textContent = 'Enter your Public Service Number (PSN) and 5-Digit Login PIN to commence your evaluation';
+    const inputTokenPsn = document.getElementById('token-exam-psn');
+    if (inputTokenPsn) inputTokenPsn.focus();
+  }
+}
+
+// -------------------------------------------------------------
+// 1B. Candidate Clearance & Photocard Generation (Code 1)
+// -------------------------------------------------------------
+function resetCandidateLookup() {
+  const lookupBox = document.getElementById('reg-lookup-box');
+  const profileBox = document.getElementById('reg-profile-box');
+  if (lookupBox) lookupBox.style.display = 'block';
+  if (profileBox) profileBox.style.display = 'none';
+  state.registeredCandidate = null;
+  state.tempPassportBase64 = null;
+  const psnInput = document.getElementById('reg-input-psn');
+  if (psnInput) {
+    psnInput.value = '';
+    psnInput.focus();
+  }
+}
+
+// Lookup Form Event Listener
+const lookupForm = document.getElementById('form-candidate-lookup');
+if (lookupForm) {
+  lookupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const psn = document.getElementById('reg-input-psn').value.trim();
+    const code1 = document.getElementById('reg-input-code1').value.trim().toUpperCase();
+
+    if (!psn || !code1) {
+      showAlertModal('Information Required', 'Please provide both your PSN and your Registration Clearance Code (Code 1).', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-lookup-candidate');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳ Verifying Clearance Records...</span>`;
+    }
+
+    try {
+      const res = await fetch('/api/candidate/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ psn, code_1: code1 })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Candidate lookup failed. Please check your credentials.');
+      }
+
+      const cand = data.candidate;
+      state.registeredCandidate = cand;
+
+      // Populate form
+      document.getElementById('reg-orig-name-lbl').textContent = cand.name;
+      document.getElementById('reg-amended-name').value = cand.amended_name || cand.name;
+      const origPsnLbl = document.getElementById('reg-orig-psn-lbl');
+      if (origPsnLbl) origPsnLbl.textContent = cand.psn;
+      const psnInput = document.getElementById('reg-amended-psn') || document.getElementById('reg-disp-psn');
+      if (psnInput) {
+        psnInput.value = cand.amended_psn || cand.psn;
+        psnInput.readOnly = false;
+      }
+      document.getElementById('reg-disp-mda').value = cand.mda;
+      const origRankLbl = document.getElementById('reg-orig-rank-lbl');
+      if (origRankLbl) origRankLbl.textContent = cand.proposed_rank || 'Civil Service Cadre';
+      const rankInput = document.getElementById('reg-amended-rank') || document.getElementById('reg-disp-rank');
+      if (rankInput) {
+        rankInput.value = cand.amended_rank || cand.proposed_rank || 'Civil Service Cadre';
+        rankInput.readOnly = false;
+      }
+      const origGlLbl = document.getElementById('reg-orig-gl-lbl');
+      if (origGlLbl) origGlLbl.textContent = cand.proposed_gl || '-';
+      const glSelect = document.getElementById('reg-amended-gl');
+      if (glSelect) {
+        const rawGl = (cand.amended_gl || cand.proposed_gl || "12").toString().replace(/[^0-9]/g, '');
+        const normGl = rawGl.length === 1 ? `0${rawGl}` : rawGl;
+        glSelect.value = normGl;
+      }
+      document.getElementById('reg-disp-gl').value = `GL ${cand.amended_gl || cand.proposed_gl || ''} (${cand.amended_group || cand.group_category || ''})`;
+      document.getElementById('reg-disp-paper').value = `${cand.amended_exam_code || cand.exam_code} - ${cand.amended_group || cand.group_category}`;
+
+      document.getElementById('reg-disp-date').textContent = cand.exam_date || 'Tuesday, 29th September 2026';
+      document.getElementById('reg-disp-batch').textContent = cand.batch_session || 'Batch 1';
+      document.getElementById('reg-disp-accred').textContent = cand.accreditation_time || '09:00 AM';
+      document.getElementById('reg-disp-examtime').textContent = cand.batch_time || '10:00 AM';
+
+      document.getElementById('reg-input-phone').value = cand.phone || '';
+      document.getElementById('reg-input-email').value = cand.email || '';
+
+      const previewImg = document.getElementById('reg-passport-preview');
+      if (cand.passport_photo) {
+        previewImg.src = cand.passport_photo;
+        state.tempPassportBase64 = cand.passport_photo;
+      } else {
+        previewImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='160' viewBox='0 0 140 160'><rect width='140' height='160' fill='%23f1f5f9'/><circle cx='70' cy='55' r='30' fill='%23cbd5e1'/><path d='M20 145 C20 105 50 95 70 95 C90 95 120 105 120 145 Z' fill='%23cbd5e1'/><text x='70' y='155' text-anchor='middle' font-size='10' fill='%2394a3b8' font-family='sans-serif'>No Photo</text></svg>";
+        state.tempPassportBase64 = null;
+      }
+
+      const directBtn = document.getElementById('btn-direct-photocard');
+      if (directBtn) {
+        directBtn.style.display = (cand.registration_status === 'registered' || cand.registration_status === 'tested' || cand.passport_photo) ? 'block' : 'none';
+      }
+
+      document.getElementById('reg-lookup-box').style.display = 'none';
+      document.getElementById('reg-profile-box').style.display = 'block';
+
+    } catch (err) {
+      showAlertModal('Verification Unsuccessful', err.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+  });
+}
+
+// Dynamically handle candidate Grade Level changes in real-time
+function handleGradeLevelChange() {
+  const glSelect = document.getElementById('reg-amended-gl');
+  if (!glSelect || !state.registeredCandidate) return;
+
+  const selectedGl = glSelect.value;
+  const cand = state.registeredCandidate;
+  const glNum = parseInt(selectedGl, 10) || 12;
+
+  // 1. Compute Group Category & Group Letter
+  let newGroup = "GROUP B";
+  let groupLetter = "B";
+  if (glNum >= 17) {
+    newGroup = "GL 17";
+    groupLetter = "GL 17";
+  } else if (glNum >= 14) {
+    newGroup = "GROUP A";
+    groupLetter = "A";
+  } else if (glNum >= 12) {
+    newGroup = "GROUP B";
+    groupLetter = "B";
+  } else if (glNum >= 9) {
+    newGroup = "GROUP C";
+    groupLetter = "C";
+  } else {
+    newGroup = "GROUP D";
+    groupLetter = "D";
+  }
+
+  // 2. Compute Examination Subject Code & Paper
+  let newExamCode = "DIRECTOR/GL 17";
+  if (newGroup !== "GL 17") {
+    let mdaPrefix = (cand.mda || "OHOS").trim();
+    const origCode = (cand.exam_code || "").trim();
+    if (origCode.includes("/") && !origCode.startsWith("DIRECTOR")) {
+      mdaPrefix = origCode.split("/")[0].trim();
+    }
+
+    let suffix = "1";
+    const match = origCode.match(/[/-][A-Da-d](\d+)/);
+    if (match) {
+      suffix = match[1];
+    }
+
+    newExamCode = `${mdaPrefix}/${groupLetter}${suffix}`;
+  }
+
+  // 3. Compute Schedule Allocation
+  let examDate = "Tuesday, 29th September 2026";
+  let batchSession = "Session 1";
+  let batchTime = "10:00 AM - 11:00 AM";
+  let accredTime = "09:30 AM";
+
+  const origGrpClean = (cand.group_category || "").replace("GROUP ", "").trim();
+  const newGrpClean = newGroup.replace("GROUP ", "").trim();
+
+  if (origGrpClean === newGrpClean && cand.batch_session) {
+    examDate = cand.exam_date || (newGroup === "GROUP A" || newGroup === "GROUP B" ? "Tuesday, 29th September 2026" : "Wednesday, 30th September 2026");
+    batchSession = cand.batch_session;
+    batchTime = cand.batch_time;
+    accredTime = cand.accreditation_time;
+  } else {
+    if (newGroup === "GROUP A") {
+      examDate = "Tuesday, 29th September 2026";
+      batchSession = "Session 1";
+      batchTime = "10:00 AM - 11:00 AM";
+      accredTime = "09:30 AM";
+    } else if (newGroup === "GROUP B") {
+      examDate = "Tuesday, 29th September 2026";
+      batchSession = "Session 4";
+      batchTime = "01:00 PM - 02:00 PM";
+      accredTime = "12:30 PM";
+    } else if (newGroup === "GROUP C") {
+      examDate = "Wednesday, 30th September 2026";
+      batchSession = "Session 1";
+      batchTime = "10:00 AM - 11:00 AM";
+      accredTime = "09:30 AM";
+    } else if (newGroup === "GROUP D" || newGroup === "GL 17") {
+      examDate = "Wednesday, 30th September 2026";
+      batchSession = "Session 3";
+      batchTime = "12:00 PM - 01:00 PM";
+      accredTime = "11:30 AM";
+    }
+  }
+
+  // Update Display Fields
+  const dispGl = document.getElementById('reg-disp-gl');
+  if (dispGl) dispGl.value = `GL ${selectedGl} (${newGroup})`;
+
+  const dispPaper = document.getElementById('reg-disp-paper');
+  if (dispPaper) dispPaper.value = `${newExamCode} - ${newGroup}`;
+
+  const dispDate = document.getElementById('reg-disp-date');
+  if (dispDate) dispDate.textContent = examDate;
+
+  const dispBatch = document.getElementById('reg-disp-batch');
+  if (dispBatch) dispBatch.textContent = batchSession;
+
+  const dispAccred = document.getElementById('reg-disp-accred');
+  if (dispAccred) dispAccred.textContent = accredTime;
+
+  const dispTime = document.getElementById('reg-disp-examtime');
+  if (dispTime) dispTime.textContent = batchTime;
+}
+
+// Handle Passport File Upload
+function handlePassportFileSelect(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (!file.type.startsWith('image/')) {
+    showAlertModal('Invalid File', 'Please select an image file (PNG, JPG, JPEG).', 'warning');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Resize to standard passport dimensions (280x320)
+      const canvas = document.createElement('canvas');
+      canvas.width = 280;
+      canvas.height = 320;
+      const ctx = canvas.getContext('2d');
+
+      // Crop center to maintain aspect ratio
+      const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      const x = (canvas.width - w) / 2;
+      const y = (canvas.height - h) / 2;
+
+      ctx.drawImage(img, x, y, w, h);
+      const dataUri = canvas.toDataURL('image/jpeg', 0.85);
+      state.tempPassportBase64 = dataUri;
+      const preview = document.getElementById('reg-passport-preview');
+      if (preview) preview.src = dataUri;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Live Webcam Snapshot Handling
+async function openWebcamModal() {
+  const modal = document.getElementById('webcam-modal');
+  const video = document.getElementById('webcam-video');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+    });
+    state.webcamStream = stream;
+    if (video) {
+      video.srcObject = stream;
+      video.play();
+    }
+    if (modal) modal.classList.add('active');
+  } catch (err) {
+    showAlertModal(
+      'Webcam Unavailable',
+      'Unable to access camera (' + err.message + '). Please use the "Upload Photo File" button to upload your passport photo directly.',
+      'warning'
+    );
+  }
+}
+
+function captureWebcamPhoto() {
+  const video = document.getElementById('webcam-video');
+  const canvas = document.getElementById('webcam-canvas');
+  if (!video || !canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = 280;
+  canvas.height = 320;
+
+  // Mirror effect compensation
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+
+  const vWidth = video.videoWidth || 640;
+  const vHeight = video.videoHeight || 480;
+  const scale = Math.max(canvas.width / vWidth, canvas.height / vHeight);
+  const w = vWidth * scale;
+  const h = vHeight * scale;
+  const x = (canvas.width - w) / 2;
+  const y = (canvas.height - h) / 2;
+
+  ctx.drawImage(video, x, y, w, h);
+  const dataUri = canvas.toDataURL('image/jpeg', 0.85);
+  state.tempPassportBase64 = dataUri;
+
+  const preview = document.getElementById('reg-passport-preview');
+  if (preview) preview.src = dataUri;
+
+  closeWebcamModal();
+}
+
+function closeWebcamModal() {
+  if (state.webcamStream) {
+    state.webcamStream.getTracks().forEach(track => track.stop());
+    state.webcamStream = null;
+  }
+  const modal = document.getElementById('webcam-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Save Registration and View Photocard
+const completeRegForm = document.getElementById('form-complete-reg');
+if (completeRegForm) {
+  completeRegForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!state.registeredCandidate) {
+      showAlertModal('Session Expired', 'Please look up your PSN again.', 'warning');
+      return;
+    }
+
+    if (!state.tempPassportBase64) {
+      showAlertModal(
+        'Passport Photo Required',
+        'Please upload or take a live webcam snapshot of your passport photograph before proceeding.',
+        'warning'
+      );
+      return;
+    }
+
+    const amendedName = document.getElementById('reg-amended-name').value.trim();
+    const psnInput = document.getElementById('reg-amended-psn') || document.getElementById('reg-disp-psn');
+    const amendedPsn = psnInput ? psnInput.value.trim() : state.registeredCandidate.psn;
+    const rankInput = document.getElementById('reg-amended-rank') || document.getElementById('reg-disp-rank');
+    const amendedRank = rankInput ? rankInput.value.trim() : (state.registeredCandidate.proposed_rank || '');
+    const glSelect = document.getElementById('reg-amended-gl');
+    const amendedGl = glSelect ? glSelect.value : (state.registeredCandidate.proposed_gl || '');
+    const phone = document.getElementById('reg-input-phone').value.trim();
+    const email = document.getElementById('reg-input-email').value.trim();
+
+    if (!amendedPsn) {
+      showAlertModal('Information Required', 'Please provide a valid PSN.', 'warning');
+      return;
+    }
+    if (!amendedRank) {
+      showAlertModal('Information Required', 'Please provide your Cadre / Proposed Rank.', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-save-photocard');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>💾 Generating Official Photocard...</span>`;
+    }
+
+    try {
+      const res = await fetch('/api/candidate/complete-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          psn: state.registeredCandidate.psn,
+          code_1: state.registeredCandidate.code_1,
+          amended_name: amendedName,
+          amended_psn: amendedPsn,
+          amended_rank: amendedRank,
+          amended_gl: amendedGl,
+          phone: phone,
+          email: email,
+          passport_photo: state.tempPassportBase64
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to complete registration.');
+      }
+
+      state.registeredCandidate = data.candidate;
+      renderPhotocard(data.candidate);
+      openInstructionsModal();
+
+    } catch (err) {
+      showAlertModal('Registration Error', err.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+  });
+}
+
+function openInstructionsModal() {
+  const modal = document.getElementById('photocard-instructions-modal');
+  const chk = document.getElementById('chk-acknowledge-rules');
+  const btn = document.getElementById('btn-ack-rules');
+  if (chk) chk.checked = false;
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  }
+  if (modal) modal.classList.add('active');
+}
+
+function toggleAckButton() {
+  const chk = document.getElementById('chk-acknowledge-rules');
+  const btn = document.getElementById('btn-ack-rules');
+  if (!chk || !btn) return;
+  if (chk.checked) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+function closeInstructionsModalAndShowPhotocard() {
+  const modal = document.getElementById('photocard-instructions-modal');
+  if (modal) modal.classList.remove('active');
+  showView('photocard');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function viewDirectPhotocard() {
+  if (state.registeredCandidate) {
+    renderPhotocard(state.registeredCandidate);
+    openInstructionsModal();
+  }
+}
+
+function renderPhotocard(c) {
+  const target = document.getElementById('photocard-render-target');
+  if (!target) return;
+
+  const displayName = c.amended_name || c.name;
+  const photoSrc = c.passport_photo || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='160' viewBox='0 0 140 160'><rect width='140' height='160' fill='%23f1f5f9'/><circle cx='70' cy='55' r='30' fill='%23cbd5e1'/><path d='M20 145 C20 105 50 95 70 95 C90 95 120 105 120 145 Z' fill='%23cbd5e1'/><text x='70' y='155' text-anchor='middle' font-size='10' fill='%2394a3b8' font-family='sans-serif'>No Photo</text></svg>";
+
+  target.innerHTML = `
+    <div class="photocard-meta-grid">
+      <div class="passport-box">
+        <img src="${photoSrc}" alt="Candidate Passport Photo">
+      </div>
+      <div>
+        <table class="candidate-info-table">
+          <tr>
+            <th style="padding: 3px 6px;">Candidate Name:</th>
+            <td style="padding: 3px 6px;"><strong style="font-size: 1rem; color: #004d40;">${displayName}</strong></td>
+          </tr>
+          <tr>
+            <th style="padding: 3px 6px;">Candidate ID:</th>
+            <td style="padding: 3px 6px;">
+              <code style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">${c.amended_psn || c.psn}</code>
+              ${c.amended_psn && c.amended_psn !== c.psn ? `<small style="font-size: 0.72rem; color: #64748b; margin-left: 6px;">(Roster PSN: ${c.psn})</small>` : ''}
+            </td>
+          </tr>
+          <tr>
+            <th style="padding: 3px 6px;">Ministry / MDA:</th>
+            <td style="padding: 3px 6px;">${c.mda}</td>
+          </tr>
+          <tr>
+            <th style="padding: 3px 6px;">Present / Proposed Rank:</th>
+            <td style="padding: 3px 6px;">
+              <strong>${c.amended_rank || c.proposed_rank || 'Civil Service Cadre'}</strong>
+              ${c.amended_rank && c.amended_rank !== c.proposed_rank ? `<small style="font-size: 0.72rem; color: #64748b; margin-left: 6px;">(Roster Rank: ${c.proposed_rank})</small>` : ''}
+            </td>
+          </tr>
+          <tr>
+            <th style="padding: 3px 6px;">Proposed Grade Level:</th>
+            <td style="padding: 3px 6px;">
+              <span class="badge-cadre" style="padding: 2px 6px; font-size: 0.78rem;">${c.amended_gl || c.proposed_gl || ''} (${c.group_category || ''})</span>
+              ${c.amended_gl && c.amended_gl !== c.proposed_gl ? `<small style="font-size: 0.72rem; color: #64748b; margin-left: 6px;">(Roster GL: ${c.proposed_gl})</small>` : ''}
+            </td>
+          </tr>
+          <tr>
+            <th style="padding: 3px 6px;">Examination Subject:</th>
+            <td style="padding: 3px 6px;">
+              <strong style="color: #0369a1;">${c.exam_code}</strong> (${c.group_category || ''})
+            </td>
+          </tr>
+          <tr>
+            <th style="padding: 3px 6px;">Registration Code (Code 1):</th>
+            <td style="padding: 3px 6px;"><span class="badge-code1" style="padding: 2px 6px; font-size: 0.8rem;">${c.code_1}</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Examination Timetable Allocation -->
+    <div class="schedule-banner-box" style="padding: 8px 12px; margin-bottom: 10px;">
+      <h4 style="font-size: 0.84rem; margin-bottom: 4px;">📅 Official Examination Schedule Allocation</h4>
+      <div class="schedule-grid" style="gap: 6px;">
+        <div class="schedule-item">
+          Examination Date:
+          <span style="font-size: 0.84rem;">${c.exam_date || 'Tuesday, 29th September 2026'}</span>
+        </div>
+        <div class="schedule-item">
+          Session / Batch:
+          <span style="font-size: 0.84rem;">${c.batch_session || 'Day 1 - Batch 1'}</span>
+        </div>
+        <div class="schedule-item">
+          Accreditation Time:
+          <span style="font-size: 0.84rem;">${c.accreditation_time || '09:00 AM'}</span>
+        </div>
+        <div class="schedule-item">
+          Exam Commencement:
+          <span style="font-size: 0.84rem;">${c.batch_time || '10:00 AM'}</span>
+        </div>
+        <div class="schedule-item" style="grid-column: 1 / -1; background: #f0fdf4; border: 1.5px solid #86efac; padding: 5px 8px; border-radius: 6px;">
+          <strong style="color: #166534; font-size: 0.76rem; text-transform: uppercase;">📍 Designated Examination Venue:</strong>
+          <span style="font-weight: 800; color: #004d40; font-size: 0.88rem; display: block; margin-top: 2px; line-height: 1.25;">
+            Nigerian Content Tower (NCT), Ox-Bow Lake, Swali, Yenagoa, Bayelsa State
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Candidate Regulations -->
+    <div class="photocard-rules" style="background: #fffbeb; border: 1.5px solid #fde68a; border-left: 4px solid #d97706; padding: 8px 12px; border-radius: 6px; margin: 8px 0;">
+      <div style="font-weight: 800; color: #92400e; font-size: 0.78rem; margin-bottom: 4px; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+        <span>⚠️ MANDATORY EXAMINATION REGULATIONS & VENUE INSTRUCTIONS:</span>
+      </div>
+      <ol style="margin-left: 16px; font-size: 0.74rem; color: #78350f; line-height: 1.35; display: flex; flex-direction: column; gap: 2.5px;">
+        <li><strong>Designated Venue:</strong> Nigerian Content Tower (NCT), Ox-Bow Lake, Swali, Yenagoa, Bayelsa State.</li>
+        <li><strong>Strict Punctuality & Zero-Loitering Policy:</strong> Candidates must come to the venue at the stipulated accreditation time only (arrival is permitted at most <strong>20 minutes earlier</strong>). <strong>Loitering, crowding, or parading around the vicinity will NOT be tolerated.</strong></li>
+        <li><strong>Mandatory Smart Mobile Device:</strong> Candidates <strong>MUST come to the venue with their smartphone</strong> (Android, iPhone, or any smart mobile device) with an active, functional web browser installed, and <strong>MUST HAVE AN ACTIVE INTERNET SUBSCRIPTION (DATA BUNDLE SUBSCRIPTION)</strong> (though internet is going to be provided).</li>
+        <li><strong>Physical Photocard Required:</strong> This printed physical photocard must be presented physically to the invigilator during hall accreditation.</li>
+        <li><strong>Examination Login PIN:</strong> Upon physical accreditation in the CBT hall, you will receive your single-use <strong>5-Digit Login PIN</strong> to unlock your workstation test.</li>
+        <li><strong>Exam Structure & Duration:</strong> The assessment is structured into <strong>Part 1, Part 2, and Part 3</strong>. Each part has a duration of <strong>Strictly 60 Minutes</strong> (60 multiple choice questions per part, 1 mark each). The test automatically submits when the countdown timer expires.</li>
+      </ol>
+    </div>
+
+    <div class="photocard-footer" style="padding-top: 8px; font-size: 0.72rem;">
+      <div>
+        <div><strong>Status:</strong> <span style="color:#059669; font-weight:800;">VERIFIED & ACCREDITED FOR CBT</span></div>
+        <div style="font-size: 0.68rem; margin-top: 1px;">Security Verification Code: ${c.code_1}-${c.psn} &bull; Portal: <strong>www.ncdmb.gov.ng</strong></div>
+      </div>
+      <div class="slip-sign-line" style="width: 200px; font-size: 0.74rem;">
+        Nigerian Content Development and Monitoring Board (NCDMB)
+      </div>
+    </div>
+  `;
+}
+
+function proceedToExamFromPhotocard() {
+  showView('entry');
+  switchEntryTab('start');
+  if (state.registeredCandidate) {
+    const psnInput = document.getElementById('token-exam-psn');
+    if (psnInput) psnInput.value = state.registeredCandidate.psn;
+    const tokenInput = document.getElementById('token-exam-code');
+    if (tokenInput) tokenInput.focus();
+  }
+}
+
+function renderCandidateAvatar(candidate) {
+  const avatarEl = document.getElementById('exam-candidate-avatar');
+  if (!avatarEl) return;
+  
+  if (candidate && candidate.passport_photo && (candidate.passport_photo.startsWith('data:image') || candidate.passport_photo.startsWith('http') || candidate.passport_photo.startsWith('/'))) {
+    const officerName = candidate.name || 'Candidate';
+    const fallbackInitial = officerName.trim().charAt(0).toUpperCase() || 'C';
+    avatarEl.innerHTML = `<img src="${candidate.passport_photo}" alt="${officerName}" onerror="this.onerror=null; this.parentElement.textContent='${fallbackInitial}';" />`;
+    avatarEl.style.padding = '0';
+    avatarEl.title = `${officerName} (Verified Officer)`;
+  } else {
+    const initial = (candidate && candidate.name) ? candidate.name.trim().charAt(0).toUpperCase() : 'C';
+    avatarEl.textContent = initial;
+    avatarEl.style.padding = '';
+    avatarEl.title = (candidate && candidate.name) ? candidate.name : 'Candidate';
+  }
+}
+
+// -------------------------------------------------------------
+// 1C. Take CBT Examination with 5-Digit Scratch Token
+// -------------------------------------------------------------
+const tokenExamForm = document.getElementById('form-token-exam');
+if (tokenExamForm) {
+  tokenExamForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (state.examStatus === 'closed') {
+      showAlertModal(
+        'Examination Closed',
+        'The CBT Examination is currently closed by the Administrator. Candidate intake and test sessions are suspended.',
+        'error'
+      );
+      return;
+    }
+
+    const psn = document.getElementById('token-exam-psn').value.trim();
+    const tokenCode = document.getElementById('token-exam-code').value.trim();
+
+    if (!psn || !tokenCode) {
+      showAlertModal(
+        'Missing Credentials',
+        'Please enter both your PSN and your 5-digit Login PIN.',
+        'warning'
+      );
+      return;
+    }
+
+    if (tokenCode.includes('-') || /[A-Za-z]/.test(tokenCode)) {
+      showAlertModal(
+        'Registration Code Entered',
+        'You entered a Registration Clearance Code (' + tokenCode + '). Registration codes are used on Tab 1 ("🪪 Verification & Photocard") to generate your photocard.<br><br>To take the examination here on Tab 2, please enter your <strong>5-digit numeric Login PIN</strong> (e.g. <strong>65547</strong>).',
+        'warning'
+      );
+      return;
+    }
+
+    if (tokenCode.length !== 5 || !/^\d{5}$/.test(tokenCode)) {
+      showAlertModal('Invalid PIN Format', 'The Login PIN must be exactly 5 digits (e.g. 65547).', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-start-token-exam');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳ Validating Login PIN & Unlocking Exam...</span>`;
+    }
+
+    try {
+      // Check if session can be restored from local storage
+      const restored = checkAndRestoreSession(psn);
+      if (restored) {
+        state.candidate = restored.candidate;
+        state.candidateId = restored.candidateId;
+        state.questions = restored.questions;
+        state.currentIndex = restored.currentIndex || 0;
+        state.answers = restored.answers || {};
+        state.flagged = new Set(restored.flagged || []);
+        state.isSubmitted = false;
+        state.durationSeconds = restored.durationSeconds || 1200;
+        state.secondsRemaining = restored.secondsRemaining;
+        
+        document.getElementById('exam-candidate-name').textContent = `Candidate ID: ${state.candidate.psn}`;
+        document.getElementById('exam-candidate-psn').textContent = `Paper: ${state.candidate.paper_code || 'Module 1 Assessment'}`;
+        renderCandidateAvatar(state.candidate);
+        
+        buildPalette();
+        renderQuestion(state.currentIndex);
+        startTimer();
+        updateNetworkStatusIndicator();
+        showView('exam');
+        proctorEngine.start(state.candidate);
+        showRetryToast('✅ Resumed ongoing examination session seamlessly.');
+        if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+        return;
+      }
+
+      const response = await fetchWithRetry('/api/exam/start-with-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ psn: psn, token_code: tokenCode })
+      }, 3, 1500);
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to authenticate examination session.');
+      }
+
+      state.candidate = data.candidate;
+      state.candidateId = data.candidate.psn;
+      state.tokenCode = tokenCode;
+      state.questions = data.questions;
+      state.currentIndex = 0;
+      if (data.anti_cheat_status) state.antiCheatStatus = data.anti_cheat_status;
+      if (data.anti_cheat_enabled !== undefined) state.antiCheatEnabled = data.anti_cheat_enabled;
+      state.answers = {};
+      state.flagged.clear();
+      state.isSubmitted = false;
+      state.durationSeconds = (data.duration_minutes || 60) * 60; // Strictly 60 minutes (3600s)
+      state.secondsRemaining = state.durationSeconds;
+
+      // Update candidate details in exam header
+      document.getElementById('exam-candidate-name').textContent = `Candidate ID: ${state.candidate.psn}`;
+      document.getElementById('exam-candidate-psn').textContent = `Paper: ${state.candidate.paper_code || data.paper_code || 'Module 1 Assessment'}`;
+      renderCandidateAvatar(state.candidate);
+
+      buildPalette();
+      renderQuestion(0);
+      startTimer();
+      updateNetworkStatusIndicator();
+      saveExamProgress();
+      showView('exam');
+      proctorEngine.start(state.candidate);
+
+    } catch (err) {
+      state.candidate = null;
+      state.candidateId = null;
+      state.questions = [];
+      state.answers = {};
+      state.flagged.clear();
+
+      showAlertModal(
+        'Access Denied',
+        err.message,
+        'error'
+      );
+    } finally {
+      if (btn) {
+        if (state.examStatus === 'closed') {
+          applyExamStatusToUI('closed');
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
+    }
+  });
+}
+
+// ============================================================================
+// PROCTORING & ANTI-CHEATING SHIELD ENGINE (3 STRIKES AUTO-SUBMIT)
+// ============================================================================
+const proctorEngine = {
+  enabled: true,
+  active: false,
+  violations: 0,
+  maxViolations: 3,
+  violationLogs: [],
+  lastViolationTime: 0,
+  cooldownMs: 2500, // 2.5s debounce to prevent double-counting when window blur & visibilitychange fire together
+  _visHandler: null,
+  _blurHandler: null,
+  _contextHandler: null,
+  _copyHandler: null,
+  _keyHandler: null,
+
+  init() {
+    this.closeViolationModal();
+    this.hideCurtain();
+  },
+
+  start(candidate) {
+    // Check if anti-cheat is disabled from backend
+    if (state.antiCheatEnabled === false || (candidate && candidate.anti_cheat_enabled === false)) {
+      this.enabled = false;
+      this.active = false;
+      this.detachListeners();
+      this.updateSecurityBadge();
+      this.closeViolationModal();
+      return;
+    }
+
+    this.enabled = true;
+    this.violations = 0;
+    this.maxViolations = 3;
+    this.violationLogs = [];
+    this.lastViolationTime = 0;
+    this.active = true;
+
+    this.updateSecurityBadge();
+    this.closeViolationModal();
+    this.attachListeners();
+  },
+
+  stop() {
+    this.active = false;
+    this.detachListeners();
+    this.closeViolationModal();
+    this.hideCurtain();
+  },
+
+  attachListeners() {
+    this.detachListeners();
+
+    this._visHandler = () => {
+      if (!this.active || !this.enabled || state.isSubmitted) return;
+      if (document.hidden || document.visibilityState === 'hidden') {
+        this.recordViolation('Switched tab or minimized browser window');
+      }
+    };
+
+    this._blurHandler = () => {
+      if (!this.active || !this.enabled || state.isSubmitted) return;
+      this.recordViolation('Navigated away from examination window (lost focus)');
+    };
+
+    this._contextHandler = (e) => {
+      if (this.active && this.enabled) {
+        e.preventDefault();
+      }
+    };
+
+    this._copyHandler = (e) => {
+      if (this.active && this.enabled) {
+        e.preventDefault();
+        this.recordViolation('Copy / cut attempt intercepted');
+      }
+    };
+
+    this._keyHandler = (e) => {
+      if (!this.active || !this.enabled) return;
+      // Intercept dev tools and window switching keys
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && (e.key === 'u' || e.key === 'U'))) {
+        e.preventDefault();
+        this.recordViolation('Restricted developer shortcut intercepted');
+      }
+    };
+
+    document.addEventListener('visibilitychange', this._visHandler);
+    window.addEventListener('blur', this._blurHandler);
+    window.addEventListener('contextmenu', this._contextHandler);
+    window.addEventListener('copy', this._copyHandler);
+    window.addEventListener('cut', this._copyHandler);
+    window.addEventListener('keydown', this._keyHandler);
+  },
+
+  detachListeners() {
+    if (this._visHandler) document.removeEventListener('visibilitychange', this._visHandler);
+    if (this._blurHandler) window.removeEventListener('blur', this._blurHandler);
+    if (this._contextHandler) window.removeEventListener('contextmenu', this._contextHandler);
+    if (this._copyHandler) window.removeEventListener('copy', this._copyHandler);
+    if (this._copyHandler) window.removeEventListener('cut', this._copyHandler);
+    if (this._keyHandler) window.removeEventListener('keydown', this._keyHandler);
+  },
+
+  recordViolation(reason) {
+    if (!this.active || !this.enabled || state.isSubmitted) return;
+
+    const now = Date.now();
+    if (now - this.lastViolationTime < this.cooldownMs) {
+      return; // Ignore rapid duplicate trigger
+    }
+    this.lastViolationTime = now;
+
+    this.violations++;
+    const timestamp = new Date().toLocaleTimeString();
+    this.violationLogs.push({ time: timestamp, reason: reason, strike: this.violations });
+
+    this.updateSecurityBadge();
+
+    if (this.violations < this.maxViolations) {
+      this.showViolationModal(reason);
+    } else {
+      // 3rd strike reached: Terminate & Auto-Submit
+      this.handleTermination(reason);
+    }
+  },
+
+  updateSecurityBadge() {
+    const badge = document.getElementById('exam-security-badge');
+    const text = document.getElementById('security-status-text');
+    if (!badge || !text) return;
+
+    if (!this.enabled) {
+      badge.className = 'security-status-badge';
+      badge.style.background = '#f1f5f9';
+      badge.style.borderColor = '#cbd5e1';
+      text.style.color = '#64748b';
+      text.textContent = '⚪ Shield: Inactive (Switched Off)';
+      return;
+    }
+
+    if (this.violations === 0) {
+      badge.className = 'security-status-badge secure';
+      badge.style.background = '#f0fdf4';
+      badge.style.borderColor = '#16a34a';
+      text.style.color = '#166534';
+      text.textContent = `🛡️ Shield: Active (0/${this.maxViolations} Strikes)`;
+    } else if (this.violations === 1) {
+      badge.className = 'security-status-badge warning';
+      badge.style.background = '#fffbeb';
+      badge.style.borderColor = '#f59e0b';
+      text.style.color = '#b45309';
+      text.textContent = `⚠️ Strike 1/${this.maxViolations} (Navigated Away)`;
+    } else if (this.violations === 2) {
+      badge.className = 'security-status-badge danger';
+      badge.style.background = '#fef2f2';
+      badge.style.borderColor = '#dc2626';
+      text.style.color = '#b91c1c';
+      text.textContent = `🚨 FINAL WARNING: Strike 2/${this.maxViolations}`;
+    } else {
+      badge.className = 'security-status-badge danger';
+      badge.style.background = '#7f1d1d';
+      badge.style.borderColor = '#dc2626';
+      text.style.color = '#ffffff';
+      text.textContent = `🚨 Strike 3/${this.maxViolations}: Auto-Submitting`;
+    }
+  },
+
+  showViolationModal(reason) {
+    const modal = document.getElementById('security-violation-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+
+    const remaining = this.maxViolations - this.violations;
+    const strikePills = [];
+    for (let s = 1; s <= this.maxViolations; s++) {
+      if (s <= this.violations) {
+        strikePills.push(`<span style="background: #dc2626; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.78rem;">⚠️ STRIKE ${s} INCURRED</span>`);
+      } else {
+        strikePills.push(`<span style="background: #e2e8f0; color: #64748b; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">⚪ Strike ${s} Pending</span>`);
+      }
+    }
+
+    modal.innerHTML = `
+      <div class="modal-card" style="max-width: 520px; width: 92%; border-radius: 16px; border: 2.5px solid #dc2626; box-shadow: 0 25px 50px -12px rgba(220, 38, 38, 0.4); overflow: hidden; text-align: center; padding: 0;">
+        <div style="background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%); color: #fff; padding: 18px 20px;">
+          <div style="font-size: 2.4rem; margin-bottom: 6px;">⚠️</div>
+          <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em;">
+            ANTI-CHEAT SECURITY WARNING: STRIKE ${this.violations} OF ${this.maxViolations}
+          </h3>
+          <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #fee2e2; font-weight: 600;">
+            Navigation away from examination window detected
+          </p>
+        </div>
+
+        <div style="padding: 22px 20px; font-size: 0.9rem; line-height: 1.55; color: #334155;">
+          <p style="margin: 0 0 14px 0;">
+            You navigated away from the CBT examination browser window (<strong>${reason}</strong>).
+            Under NCDMB examination regulations, switching browser tabs, minimizing the window, or accessing other applications is strictly prohibited.
+          </p>
+
+          <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;">
+            ${strikePills.join('')}
+          </div>
+
+          <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 14px; border-radius: 6px; text-align: left; margin-bottom: 18px;">
+            <div style="color: #991b1b; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 2px;">
+              ⚠️ Critical Rule:
+            </div>
+            <div style="color: #7f1d1d; font-size: 0.84rem;">
+              You have <strong>${remaining} warning(s)</strong> remaining. On the <strong>3rd strike</strong>, your examination session will be <strong>IMMEDIATELY TERMINATED</strong> and automatically submitted with your current answers.
+            </div>
+          </div>
+
+          <button type="button" class="btn-primary-large" style="width: 100%; padding: 12px 16px; font-size: 0.98rem; font-weight: 800; background: #00563F; border: none; border-radius: 8px; color: #fff; cursor: pointer;" onclick="proctorEngine.resumeExam()">
+            <span>✅ I Acknowledge & Return to Examination</span>
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  handleTermination(reason) {
+    this.active = false;
+    this.detachListeners();
+
+    if (state.timerInterval) clearInterval(state.timerInterval);
+
+    const modal = document.getElementById('security-violation-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+
+      modal.innerHTML = `
+        <div class="modal-card" style="max-width: 520px; width: 92%; border-radius: 16px; border: 3px solid #7f1d1d; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); overflow: hidden; text-align: center; padding: 0;">
+          <div style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); color: #fff; padding: 22px 20px;">
+            <div style="font-size: 2.8rem; margin-bottom: 6px;">🚨</div>
+            <h3 style="margin: 0; font-size: 1.3rem; font-weight: 900; letter-spacing: -0.01em;">
+              EXAMINATION TERMINATED (3 STRIKES EXCEEDED)
+            </h3>
+            <p style="margin: 6px 0 0 0; font-size: 0.88rem; color: #fecaca; font-weight: 600;">
+              Anti-Cheat Policy Violation — Browser Navigation Lockout
+            </p>
+          </div>
+
+          <div style="padding: 24px 20px; font-size: 0.92rem; line-height: 1.55; color: #334155;">
+            <p style="margin: 0 0 16px 0;">
+              You have repeatedly navigated away from the CBT examination window (<strong>3 strikes reached</strong>).
+              In accordance with NCDMB CBT integrity guidelines, your examination has been permanently terminated.
+            </p>
+
+            <div style="background: #fef2f2; border: 1.5px solid #f87171; padding: 12px 14px; border-radius: 8px; color: #991b1b; font-weight: 700; margin-bottom: 20px;">
+              ⏳ Automatically submitting and locking your examination answers now...
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    setTimeout(() => {
+      this.closeViolationModal();
+      submitExam(true, 'Anti-Cheat Policy Violation: 3 Strikes Navigated Away from Browser');
+    }, 2200);
+  },
+
+  resumeExam() {
+    this.closeViolationModal();
+    this.hideCurtain();
+  },
+
+  closeViolationModal() {
+    const modal = document.getElementById('security-violation-modal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      modal.innerHTML = '';
+    }
+  },
+
+  hideCurtain() {
+    const curtain = document.getElementById('security-curtain');
+    if (curtain) {
+      curtain.style.display = 'none';
+      curtain.classList.remove('active');
+    }
+  },
+
+  getSecurityFlags() {
+    if (!this.violationLogs || this.violationLogs.length === 0) return '';
+    return this.violationLogs.map(v => `[${v.time}] Strike ${v.strike}: ${v.reason}`).join('; ');
+  }
+};
+
+// -------------------------------------------------------------
+// 2. CBT Testing Engine & Live Countdown
+// -------------------------------------------------------------
+function startTimer() {
+  if (state.timerInterval) clearInterval(state.timerInterval);
+
+  const timerEl = document.getElementById('exam-timer');
+  const timerText = document.getElementById('timer-text');
+  const sidebarTimerBox = document.getElementById('sidebar-timer-box');
+  const sidebarTimerText = document.getElementById('sidebar-timer-text');
+
+  function updateDisplay() {
+    const formatted = formatTime(state.secondsRemaining);
+    if (timerText) timerText.textContent = formatted;
+    if (sidebarTimerText) sidebarTimerText.textContent = formatted;
+
+    if (state.secondsRemaining <= 120) {
+      if (timerEl) timerEl.className = 'timer-box danger';
+      if (sidebarTimerBox) sidebarTimerBox.className = 'sidebar-timer-badge danger';
+    } else if (state.secondsRemaining <= 300) {
+      if (timerEl) timerEl.className = 'timer-box warning';
+      if (sidebarTimerBox) sidebarTimerBox.className = 'sidebar-timer-badge warning';
+    } else {
+      if (timerEl) timerEl.className = 'timer-box';
+      if (sidebarTimerBox) sidebarTimerBox.className = 'sidebar-timer-badge';
+    }
+  }
+
+  updateDisplay();
+
+  state.timerInterval = setInterval(() => {
+    state.secondsRemaining--;
+    if (state.secondsRemaining <= 0) {
+      clearInterval(state.timerInterval);
+      state.secondsRemaining = 0;
+      updateDisplay();
+      showAlertModal(
+        'Time Expired',
+        'Your 20-minute allotted time has concluded. Your test is being automatically submitted and recorded now.',
+        'timer'
+      );
+      submitExam(true);
+    } else {
+      updateDisplay();
+    }
+  }, 1000);
+}
+
+function buildPalette() {
+  const container = document.getElementById('palette-numbers');
+  container.innerHTML = '';
+
+  state.questions.forEach((q, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pal-btn';
+    btn.id = `pal-btn-${idx}`;
+    btn.textContent = q.number;
+    btn.onclick = () => jumpToQuestion(idx);
+    container.appendChild(btn);
+  });
+
+  const togglePaletteBtn = document.getElementById('btn-toggle-palette');
+  if (togglePaletteBtn) {
+    togglePaletteBtn.innerHTML = `<span>📋 Question Grid (40)</span>`;
+  }
+
+  updatePaletteState();
+}
+
+function updatePaletteState() {
+  state.questions.forEach((q, idx) => {
+    const btn = document.getElementById(`pal-btn-${idx}`);
+    if (!btn) return;
+
+    const qNumStr = String(q.number);
+    const isAnswered = Boolean(state.answers[qNumStr]);
+    const isFlagged = state.flagged.has(q.number);
+    const isCurrent = idx === state.currentIndex;
+
+    btn.className = 'pal-btn';
+    if (isAnswered) btn.classList.add('answered');
+    if (isFlagged) btn.classList.add('flagged');
+    if (isCurrent) btn.classList.add('current');
+  });
+
+  const answeredCount = Object.keys(state.answers).length;
+  const flaggedCount = state.flagged.size;
+  const unansweredCount = state.questions.length - answeredCount;
+
+  document.getElementById('count-answered').textContent = answeredCount;
+  document.getElementById('count-unanswered').textContent = unansweredCount;
+  document.getElementById('count-flagged').textContent = flaggedCount;
+}
+
+function renderQuestion(index) {
+  if (index < 0 || index >= state.questions.length) return;
+  state.currentIndex = index;
+
+  const q = state.questions[index];
+  const qNumStr = String(q.number);
+
+  document.getElementById('q-current-num').textContent = `Question ${q.number} of ${state.questions.length}`;
+  document.getElementById('q-grade-tag').textContent = state.candidate.grade_level;
+  document.getElementById('q-text').textContent = q.question;
+
+  const optContainer = document.getElementById('options-container');
+  optContainer.innerHTML = '';
+
+  const selectedOpt = state.answers[qNumStr];
+
+  ['A', 'B', 'C', 'D'].forEach(letter => {
+    const text = q.options[letter];
+    if (!text) return;
+
+    const item = document.createElement('div');
+    item.className = 'option-item' + (selectedOpt === letter ? ' selected' : '');
+    item.onclick = () => selectOption(letter);
+
+    item.innerHTML = `
+      <div class="option-key">${letter}</div>
+      <div class="option-text">${text}</div>
+    `;
+    optContainer.appendChild(item);
+  });
+
+  document.getElementById('btn-prev').disabled = (index === 0);
+  document.getElementById('btn-next').disabled = (index === state.questions.length - 1);
+
+  const flagBtn = document.getElementById('btn-flag');
+  if (state.flagged.has(q.number)) {
+    flagBtn.classList.add('flagged');
+    flagBtn.innerHTML = `<span>🚩 Flagged</span>`;
+  } else {
+    flagBtn.classList.remove('flagged');
+    flagBtn.innerHTML = `<span>🏳️ Flag for Review</span>`;
+  }
+
+  updatePaletteState();
+  updateSubmitButtonState();
+}
+
+function updateSubmitButtonState() {
+  const total = state.questions.length;
+  const answeredCount = Object.keys(state.answers).length;
+  const isComplete = (total > 0 && answeredCount >= total);
+
+  // Update card submit button
+  const submitBtn = document.getElementById('btn-submit-exam');
+  const submitIcon = document.getElementById('btn-submit-icon');
+  const submitText = document.getElementById('btn-submit-text');
+  const submitHint = document.getElementById('submit-requirement-hint');
+
+  // Sidebar submit button
+  const sidebarSubmitBtn = document.getElementById('btn-sidebar-submit');
+  const sidebarSubmitText = document.getElementById('sidebar-submit-text');
+
+  if (submitBtn) {
+    if (isComplete) {
+      submitBtn.classList.remove('btn-submit-locked');
+      submitBtn.classList.add('btn-submit-ready');
+      if (submitIcon) submitIcon.textContent = '✅';
+      if (submitText) submitText.textContent = `Finalize & Submit Exam (All ${total} Answered)`;
+      if (submitHint) {
+        submitHint.innerHTML = `<span style="color:#059669; font-weight:700;">✅ Excellent! All ${total} questions answered. You may now submit your examination.</span>`;
+      }
+    } else {
+      submitBtn.classList.add('btn-submit-locked');
+      submitBtn.classList.remove('btn-submit-ready');
+      if (submitIcon) submitIcon.textContent = '🔒';
+      const remaining = total - answeredCount;
+      if (submitText) submitText.textContent = `Submit Exam (${answeredCount}/${total} Answered)`;
+      if (submitHint) {
+        submitHint.innerHTML = `<span style="color:#b45309;">⚠️ ${remaining} question${remaining > 1 ? 's' : ''} left. All ${total} questions must be answered before manual submission.</span>`;
+      }
+    }
+  }
+
+  if (sidebarSubmitBtn) {
+    if (isComplete) {
+      sidebarSubmitBtn.classList.remove('btn-submit-locked');
+      sidebarSubmitBtn.classList.add('btn-submit-ready');
+      if (sidebarSubmitText) {
+        sidebarSubmitText.textContent = `✅ Finalize & Submit (${total}/${total})`;
+      }
+    } else {
+      sidebarSubmitBtn.classList.add('btn-submit-locked');
+      sidebarSubmitBtn.classList.remove('btn-submit-ready');
+      if (sidebarSubmitText) {
+        sidebarSubmitText.textContent = `🔒 Submit (${answeredCount}/${total} Answered)`;
+      }
+    }
+  }
+}
+
+function selectOption(letter) {
+  const currentQ = state.questions[state.currentIndex];
+  const qNumStr = String(currentQ.number);
+  state.answers[qNumStr] = letter;
+  renderQuestion(state.currentIndex);
+  saveExamProgress();
+}
+
+function clearCurrentAnswer() {
+  const currentQ = state.questions[state.currentIndex];
+  const qNumStr = String(currentQ.number);
+  delete state.answers[qNumStr];
+  renderQuestion(state.currentIndex);
+  saveExamProgress();
+}
+
+function toggleCurrentFlag() {
+  const currentQ = state.questions[state.currentIndex];
+  if (state.flagged.has(currentQ.number)) {
+    state.flagged.delete(currentQ.number);
+  } else {
+    state.flagged.add(currentQ.number);
+  }
+  renderQuestion(state.currentIndex);
+  saveExamProgress();
+}
+
+function nextQuestion() {
+  if (state.currentIndex < state.questions.length - 1) {
+    renderQuestion(state.currentIndex + 1);
+  }
+}
+
+function prevQuestion() {
+  if (state.currentIndex > 0) {
+    renderQuestion(state.currentIndex - 1);
+  }
+}
+
+function jumpToQuestion(index) {
+  renderQuestion(index);
+}
+
+// -------------------------------------------------------------
+// 3. Submission & Results Slip
+// -------------------------------------------------------------
+function openSubmitModal() {
+  const answeredCount = Object.keys(state.answers).length;
+  const total = state.questions.length;
+  const unansweredCount = total - answeredCount;
+  const flaggedCount = state.flagged.size;
+
+  if (total > 0 && answeredCount < total) {
+    showUnansweredWarningModal(answeredCount, total, unansweredCount);
+    return;
+  }
+
+  const ansEl = document.getElementById('modal-ans-count');
+  const unansEl = document.getElementById('modal-unans-count');
+  const flagEl = document.getElementById('modal-flag-count');
+
+  if (ansEl) ansEl.textContent = answeredCount;
+  if (unansEl) unansEl.textContent = unansweredCount;
+  if (flagEl) flagEl.textContent = flaggedCount;
+
+  const modal = document.getElementById('submit-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeSubmitModal() {
+  const modal = document.getElementById('submit-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function showUnansweredWarningModal(answered, total, unanswered) {
+  const modal = document.getElementById('modal-unanswered-warning');
+  if (!modal) return;
+  const ansEl = document.getElementById('warn-answered-count');
+  const totEl = document.getElementById('warn-total-count');
+  const unansEl = document.getElementById('warn-unanswered-count');
+
+  if (ansEl) ansEl.textContent = answered;
+  if (totEl) totEl.textContent = total;
+  if (unansEl) unansEl.textContent = unanswered;
+
+  modal.classList.add('active');
+}
+
+function closeUnansweredWarningModal() {
+  const modal = document.getElementById('modal-unanswered-warning');
+  if (modal) modal.classList.remove('active');
+}
+
+function jumpToNextUnanswered() {
+  closeUnansweredWarningModal();
+  for (let i = 0; i < state.questions.length; i++) {
+    const q = state.questions[i];
+    if (!state.answers[String(q.number)]) {
+      jumpToQuestion(i);
+      const qCard = document.querySelector('.question-card');
+      if (qCard) {
+        qCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+  }
+}
+
+function toggleMobilePalette() {
+  const palette = document.getElementById('exam-palette-sidebar');
+  if (!palette) return;
+  palette.classList.toggle('mobile-open');
+  if (palette.classList.contains('mobile-open')) {
+    palette.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+async function submitExam(isAuto = false) {
+  if (state.isSubmitted) return;
+
+  const total = state.questions.length;
+  const answeredCount = Object.keys(state.answers).length;
+
+  // Enforce: manual submission requires ALL questions answered; autosubmit on timer bypasses
+  if (!isAuto && total > 0 && answeredCount < total) {
+    showUnansweredWarningModal(answeredCount, total, total - answeredCount);
+    return;
+  }
+
+  state.isSubmitted = true;
+
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  closeSubmitModal();
+  closeExitModal();
+  closeUnansweredWarningModal();
+
+  if (typeof proctorEngine !== 'undefined') proctorEngine.stop();
+
+  const timeTaken = state.durationSeconds - state.secondsRemaining;
+
+  const payload = {
+    candidate_id: state.candidateId,
+    name: state.candidate.name,
+    psn: state.candidate.psn,
+    email: state.candidate.email,
+    grade_level: state.candidate.grade_level,
+    mda: state.candidate.mda,
+    paper_code: (state.candidate.paper_code || ""),
+    token_code: (state.tokenCode || (state.candidate && state.candidate.token_code) || null),
+    answers: state.answers,
+    time_taken_seconds: timeTaken,
+    violations_count: (typeof proctorEngine !== 'undefined' ? proctorEngine.violations : 0),
+    security_flags: (typeof proctorEngine !== 'undefined' ? proctorEngine.getSecurityFlags() : '')
+  };
+
+  pendingSubmissionPayload = payload;
+  try {
+    localStorage.setItem(getPendingSubKey(payload.psn), JSON.stringify(payload));
+  } catch(e) {}
+
+  const submitBtn = document.getElementById('btn-submit-exam');
+  const originalSubmitHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span>⏳ Submitting & Securing Evaluation...</span>`;
+  }
+
+  try {
+    const response = await fetchWithRetry('/api/submit-exam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, 3, 1500);
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Submission could not be processed.');
+    }
+
+    state.isSubmitted = true;
+    clearExamProgress(payload.psn);
+    closeOfflineSubmitModal();
+    renderResultSlip(result);
+    showView('result');
+  } catch (err) {
+    console.warn('Network submission delayed:', err);
+    openOfflineSubmitModal(payload, err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalSubmitHtml;
+    }
+  }
+}
+
+function renderResultSlip(res) {
+  const candidate = res.candidate || {};
+
+  const nameEl = document.getElementById('res-name');
+  if (nameEl) nameEl.textContent = candidate.name || '-';
+
+  const psnEl = document.getElementById('res-psn');
+  if (psnEl) psnEl.textContent = candidate.psn || '-';
+
+  const emailEl = document.getElementById('res-email');
+  if (emailEl) emailEl.textContent = candidate.email || '-';
+
+  const gradeEl = document.getElementById('res-grade');
+  if (gradeEl) gradeEl.textContent = candidate.grade_level || '-';
+
+  const mdaEl = document.getElementById('res-mda');
+  if (mdaEl) mdaEl.textContent = candidate.mda || '-';
+
+  const paperEl = document.getElementById('res-paper');
+  if (paperEl) {
+    paperEl.textContent = candidate.paper_code || (state.candidate ? state.candidate.paper_code : '') || 'Promotion CBT Evaluation';
+  }
+
+  const dateEl = document.getElementById('res-date');
+  if (dateEl) dateEl.textContent = res.submitted_at || new Date().toLocaleString();
+
+  const totalSecs = res.time_taken_seconds || 0;
+  const mins = Math.floor(totalSecs / 60);
+  const secs = totalSecs % 60;
+  const timeEl = document.getElementById('res-time');
+  if (timeEl) timeEl.textContent = `${mins}m ${secs}s`;
+
+  const subId = (res.submission_id || '00000').toString().padStart(5, '0');
+  const refCode = `KWS-CSC-SUB-${subId}-${candidate.psn || '000000'}`;
+  const refEl = document.getElementById('res-ref-code');
+  if (refEl) refEl.textContent = `Ref: ${refCode}`;
+
+  state.lastResult = res;
+}
+
+// -------------------------------------------------------------
+// 4. Admin Portal & Authentication & Exam Status Toggle
+// -------------------------------------------------------------
+function openAdminLoginModal() {
+  const modal = document.getElementById('admin-login-modal');
+  const err = document.getElementById('admin-login-error');
+  if (err) err.style.display = 'none';
+  if (modal) modal.classList.add('active');
+  document.getElementById('admin-user').focus();
+}
+
+function closeAdminLoginModal() {
+  const modal = document.getElementById('admin-login-modal');
+  if (modal) modal.classList.remove('active');
+  if (window.location.pathname.toLowerCase() === '/admin') {
+    window.history.pushState({}, '', '/');
+    showView('entry');
+  }
+}
+
+const adminLoginForm = document.getElementById('form-admin-login');
+if (adminLoginForm) {
+  adminLoginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('admin-user').value.trim();
+    const password = document.getElementById('admin-pass').value.trim();
+    const errEl = document.getElementById('admin-login-error');
+    const submitBtn = document.getElementById('btn-admin-submit-login');
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span>Verifying...</span>`;
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Invalid administrator username or password.');
+      }
+
+      state.adminToken = data.token;
+      state.adminRole = data.role || 'superadmin';
+      state.adminUser = data.username || 'admin';
+      sessionStorage.setItem('kws_admin_token', data.token);
+      sessionStorage.setItem('kws_admin_role', state.adminRole);
+      sessionStorage.setItem('kws_admin_user', state.adminUser);
+      syncAdminSessionCookie();
+      applyAdminRolePermissions();
+      updateAdminDownloadLinks();
+
+      closeAdminLoginModal();
+      adminLoginForm.reset();
+      window.history.pushState({}, '', '/admin');
+      showView('admin');
+      loadAdminSubmissions();
+    } catch (err) {
+      if (errEl) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>🔑 Sign In</span>`;
+    }
+  });
+}
+
+// Admin Toggle Exam Open / Closed
+async function toggleExamStatus() {
+  if (!state.adminToken) {
+    openAdminLoginModal();
+    return;
+  }
+
+  const btn = document.getElementById('btn-toggle-status');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/admin/toggle-exam-status', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.adminToken}`
+      }
+    });
+
+    if (res.status === 401) {
+      state.adminToken = null;
+      sessionStorage.removeItem('kws_admin_token');
+      openAdminLoginModal();
+      return;
+    }
+
+    const data = await res.json();
+    state.examStatus = data.exam_status;
+    updateAdminStatusUI(data.exam_status);
+    applyExamStatusToUI(data.exam_status);
+
+    showAlertModal(
+      'Exam Status Updated',
+      data.message,
+      data.exam_status === 'open' ? 'success' : 'warning'
+    );
+  } catch (err) {
+    showAlertModal('Error', 'Failed to update exam status: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function updateAdminStatusUI(status) {
+  const dot = document.getElementById('status-pulse-dot');
+  const text = document.getElementById('admin-status-text');
+  const btn = document.getElementById('btn-toggle-status');
+  const btnText = document.getElementById('btn-toggle-status-text');
+
+  if (status === 'closed') {
+    if (dot) dot.className = 'status-pulse-dot closed';
+    if (text) {
+      text.className = 'status-text-closed';
+      text.textContent = '🔴 CLOSED / LOCKED FOR CANDIDATES';
+    }
+    if (btn) {
+      btn.className = 'btn-toggle-exam btn-status-open';
+    }
+    if (btnText) btnText.textContent = '🔓 Re-Open CBT Examination';
+  } else {
+    if (dot) dot.className = 'status-pulse-dot';
+    if (text) {
+      text.className = 'status-text-open';
+      text.textContent = '🟢 ACTIVE & OPEN FOR CANDIDATES';
+    }
+    if (btn) {
+      btn.className = 'btn-toggle-exam btn-status-close';
+    }
+    if (btnText) btnText.textContent = '🔒 Close CBT Examination';
+  }
+}
+
+// Admin Toggle Anti-Cheat Proctor Shield
+async function toggleAntiCheatStatus() {
+  if (!state.adminToken) {
+    openAdminLoginModal();
+    return;
+  }
+
+  const btn = document.getElementById('btn-toggle-anti-cheat');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/admin/toggle-anti-cheat', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.adminToken}`
+      }
+    });
+
+    if (res.status === 401) {
+      state.adminToken = null;
+      sessionStorage.removeItem('kws_admin_token');
+      openAdminLoginModal();
+      return;
+    }
+
+    const data = await res.json();
+    state.antiCheatStatus = data.anti_cheat_status;
+    state.antiCheatEnabled = data.anti_cheat_enabled;
+    updateAdminAntiCheatUI(data.anti_cheat_status);
+
+    showAlertModal(
+      'Anti-Cheat Status Updated',
+      data.message,
+      data.anti_cheat_enabled ? 'success' : 'warning'
+    );
+  } catch (err) {
+    showAlertModal('Error', 'Failed to update anti-cheat status: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function updateAdminAntiCheatUI(status) {
+  const icon = document.getElementById('anti-cheat-status-icon');
+  const text = document.getElementById('anti-cheat-status-text');
+  const btn = document.getElementById('btn-toggle-anti-cheat');
+  const btnText = document.getElementById('btn-toggle-anti-cheat-text');
+
+  const isEnabled = (status === 'enabled');
+  if (icon) icon.textContent = isEnabled ? '🛡️' : '⚪';
+  if (text) {
+    text.style.color = isEnabled ? '#16a34a' : '#64748b';
+    text.textContent = isEnabled ? 'ACTIVE (3 Strikes Auto-Submit)' : 'DISABLED (Navigation Permitted)';
+  }
+  if (btn) {
+    btn.style.background = isEnabled ? '#dc2626' : '#16a34a';
+  }
+  if (btnText) {
+    btnText.textContent = isEnabled ? '🔒 Turn OFF Anti-Cheat' : '🛡️ Turn ON Anti-Cheat';
+  }
+}
+
+async function loadAdminSubmissions() {
+  if (!state.adminToken) {
+    openAdminLoginModal();
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/admin/submissions', {
+      headers: {
+        'Authorization': `Bearer ${state.adminToken}`
+      }
+    });
+
+    if (response.status === 401) {
+      state.adminToken = null;
+      sessionStorage.removeItem('kws_admin_token');
+      openAdminLoginModal();
+      return;
+    }
+
+    const data = await response.json();
+    state.adminSubmissions = data.submissions || [];
+    state.examStatus = data.exam_status || 'open';
+
+    updateAdminStatusUI(state.examStatus);
+    applyExamStatusToUI(state.examStatus);
+    state.antiCheatStatus = data.anti_cheat_status || 'enabled';
+    state.antiCheatEnabled = (data.anti_cheat_enabled !== false);
+    updateAdminAntiCheatUI(state.antiCheatStatus);
+
+    // KPI Cards
+    const totalRoster = data.summary.total_roster || 2505;
+    const photocardsCount = data.summary.photocards_printed || 0;
+    const photocardsPct = data.summary.photocards_pct || 0;
+    
+    const kpiPhoto = document.getElementById('kpi-photocards');
+    const kpiPhotoLbl = document.getElementById('kpi-photocards-lbl');
+    if (kpiPhoto) kpiPhoto.textContent = `${photocardsCount} / ${Number(totalRoster).toLocaleString()}`;
+    if (kpiPhotoLbl) kpiPhotoLbl.textContent = `Photocards Generated (${photocardsPct}%)`;
+
+    const countTabSub = document.getElementById('count-tab-submissions');
+    const countTabPhoto = document.getElementById('count-tab-photocards');
+    if (countTabSub) countTabSub.textContent = data.summary.total_submissions;
+    if (countTabPhoto) countTabPhoto.textContent = photocardsCount;
+
+    document.getElementById('kpi-total').textContent = data.summary.total_submissions;
+    document.getElementById('kpi-avg').textContent = `${data.summary.average_score}%`;
+    document.getElementById('kpi-rate').textContent = `${data.summary.pass_rate}%`;
+    document.getElementById('kpi-pass').textContent = `${data.summary.passed_count} Passed`;
+
+    // Update download URLs with admin token
+    updateAdminDownloadLinks();
+
+    renderAdminTable();
+    loadAdminTokens();
+    loadAdminRegistrations();
+  } catch (err) {
+    console.error('Failed to load admin submissions:', err);
+  }
+}
+
+async function loadAdminRegistrations() {
+  if (!state.adminToken) return;
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      headers: { 'Authorization': `Bearer ${state.adminToken}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    state.adminRegistrations = data.registrations || [];
+
+    const countTabPhoto = document.getElementById('count-tab-photocards');
+    if (countTabPhoto) countTabPhoto.textContent = data.total_registered || 0;
+
+    const kpiPhoto = document.getElementById('kpi-photocards');
+    const kpiPhotoLbl = document.getElementById('kpi-photocards-lbl');
+    if (kpiPhoto) kpiPhoto.textContent = `${data.total_registered || 0} / ${Number(data.total_candidates || 2505).toLocaleString()}`;
+    if (kpiPhotoLbl) kpiPhotoLbl.textContent = `Photocards Generated (${data.percentage || 0}%)`;
+
+    if (state.adminTableView === 'photocards') {
+      renderAdminPhotocardsTable();
+    }
+  } catch (err) {
+    console.warn('Could not load admin registrations:', err);
+  }
+}
+
+function switchAdminTableView(targetView) {
+  state.adminTableView = targetView;
+  const tabSub = document.getElementById('tab-btn-submissions');
+  const tabCand = document.getElementById('tab-btn-candidates');
+  const tabPhoto = document.getElementById('tab-btn-photocards');
+  const tabTok = document.getElementById('tab-btn-tokens');
+
+  const wrapSub = document.getElementById('wrap-submissions-table');
+  const wrapCand = document.getElementById('wrap-candidates-panel');
+  const wrapPhoto = document.getElementById('wrap-photocards-table');
+  const wrapTok = document.getElementById('wrap-tokens-panel');
+  const filterBar = document.getElementById('admin-table-filter-bar');
+
+  // Reset all tabs
+  [tabSub, tabCand, tabPhoto, tabTok].forEach(t => {
+    if (t) {
+      t.classList.remove('active');
+      t.style.borderColor = '#cbd5e1';
+      t.style.color = '#475569';
+      t.style.background = '#fff';
+    }
+  });
+
+  // Hide all panels
+  if (wrapSub) wrapSub.style.display = 'none';
+  if (wrapCand) wrapCand.style.display = 'none';
+  if (wrapPhoto) wrapPhoto.style.display = 'none';
+  if (wrapTok) wrapTok.style.display = 'none';
+  if (filterBar) filterBar.style.display = 'none';
+
+  if (targetView === 'submissions') {
+    if (tabSub) {
+      tabSub.classList.add('active');
+      tabSub.style.borderColor = '#004d40';
+      tabSub.style.color = '#004d40';
+      tabSub.style.background = '#e6f4ea';
+    }
+    if (wrapSub) wrapSub.style.display = 'block';
+    if (filterBar) filterBar.style.display = 'flex';
+    renderAdminTable();
+  } else if (targetView === 'candidates') {
+    if (tabCand) {
+      tabCand.classList.add('active');
+      tabCand.style.borderColor = '#004d40';
+      tabCand.style.color = '#004d40';
+      tabCand.style.background = '#e6f4ea';
+    }
+    if (wrapCand) wrapCand.style.display = 'block';
+    setTimeout(() => {
+      const inp = document.getElementById('admin-cand-search-input');
+      if (inp) inp.focus();
+    }, 100);
+  } else if (targetView === 'photocards') {
+    if (tabPhoto) {
+      tabPhoto.classList.add('active');
+      tabPhoto.style.borderColor = '#0284c7';
+      tabPhoto.style.color = '#0369a1';
+      tabPhoto.style.background = '#f0f9ff';
+    }
+    if (wrapPhoto) wrapPhoto.style.display = 'block';
+    if (filterBar) filterBar.style.display = 'flex';
+    renderAdminPhotocardsTable();
+    if (!state.adminRegistrations || state.adminRegistrations.length === 0) {
+      loadAdminRegistrations();
+    }
+  } else if (targetView === 'tokens') {
+    if (tabTok) {
+      tabTok.classList.add('active');
+      tabTok.style.borderColor = '#0d9488';
+      tabTok.style.color = '#0f766e';
+      tabTok.style.background = '#f0fdfa';
+    }
+    if (wrapTok) wrapTok.style.display = 'block';
+    if (typeof loadAdminTokens === 'function') {
+      loadAdminTokens();
+    }
+  }
+}
+
+function onAdminFilterChange() {
+  if (state.adminTableView === 'photocards') {
+    renderAdminPhotocardsTable();
+  } else {
+    renderAdminTable();
+  }
+}
+
+function renderAdminTable() {
+  const tbody = document.getElementById('admin-table-body');
+  if (!tbody) return;
+  const search = (document.getElementById('admin-search').value || '').toLowerCase();
+  const gradeFilter = document.getElementById('admin-grade-filter').value;
+
+  const filtered = state.adminSubmissions.filter(s => {
+    const matchSearch = s.candidate_name.toLowerCase().includes(search) ||
+                        s.psn.toLowerCase().includes(search) ||
+                        s.email.toLowerCase().includes(search) ||
+                        s.mda.toLowerCase().includes(search);
+    const matchGrade = (gradeFilter === 'ALL' || s.grade_level === gradeFilter);
+    return matchSearch && matchGrade;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 24px; color:#64748b;">No candidate submissions found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((s, idx) => {
+    let remarkBadge = 'background: #fef3c7; color: #92400e;';
+    if (s.score_percentage >= 75) remarkBadge = 'background: #d1fae5; color: #065f46;';
+    else if (s.score_percentage >= 60) remarkBadge = 'background: #e0f2fe; color: #0369a1;';
+    else if (s.score_percentage < 50) remarkBadge = 'background: #fee2e2; color: #991b1b;';
+
+    const vCount = parseInt(s.violations_count || 0);
+    let integrityTag = '';
+    if (vCount === 0) {
+      integrityTag = '<span title="Session Clean: Zero proctor violations" style="display:inline-block; margin-top:3px; padding:2px 7px; border-radius:10px; font-size:0.72rem; font-weight:700; background:#ecfdf5; color:#047857;">🛡️ Clean</span>';
+    } else if (vCount < 3) {
+      integrityTag = `<span title="${s.security_flags || 'App switch detected'}" style="display:inline-block; margin-top:3px; padding:2px 7px; border-radius:10px; font-size:0.72rem; font-weight:700; background:#fffbeb; color:#b45309;">⚠️ ${vCount} Strike${vCount>1?'s':''}</span>`;
+    } else {
+      integrityTag = `<span title="${s.security_flags || 'Disqualified for excessive app-switching'}" style="display:inline-block; margin-top:3px; padding:2px 7px; border-radius:10px; font-size:0.72rem; font-weight:700; background:#fee2e2; color:#b91c1c;">🛑 Disqualified (${vCount}/3)</span>`;
+    }
+
+    return `
+      <tr>
+        <td style="font-weight:700; text-align:center;">${idx + 1}</td>
+        <td><strong>${s.candidate_name}</strong></td>
+        <td><code>${s.psn}</code></td>
+        <td>${s.email}</td>
+        <td><span class="grade-tag">${s.grade_level}</span></td>
+        <td>${s.mda}</td>
+        <td style="text-align:center;"><strong>${s.correct_count * 2} / 100</strong> (${s.correct_count}/50)</td>
+        <td style="text-align:center; font-weight:800; font-size:1.05rem; color:#004d40;">${s.score_percentage}%</td>
+        <td>
+          <span style="display:inline-block; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:700; ${remarkBadge}">${s.grade_remark}</span>
+          <br>${integrityTag}
+        </td>
+        <td style="font-size:0.8rem; color:#64748b;">${s.submitted_at}</td>
+        <td style="text-align:center;">
+          <button type="button" class="btn-table-manage" onclick="switchToCandidateManager('${s.psn}')" title="Inspect profile, edit details, or view/edit examination questions">
+            <span>🪪 Manage</span>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderAdminPhotocardsTable() {
+  const tbody = document.getElementById('admin-photocards-table-body');
+  if (!tbody) return;
+  const search = (document.getElementById('admin-search').value || '').toLowerCase();
+  const gradeFilter = document.getElementById('admin-grade-filter').value;
+
+  const filtered = (state.adminRegistrations || []).filter(r => {
+    const matchSearch = (r.name || '').toLowerCase().includes(search) ||
+                        (r.amended_name || '').toLowerCase().includes(search) ||
+                        (r.psn || '').toLowerCase().includes(search) ||
+                        (r.email || '').toLowerCase().includes(search) ||
+                        (r.phone || '').toLowerCase().includes(search) ||
+                        (r.mda || '').toLowerCase().includes(search);
+    const matchGrade = (gradeFilter === 'ALL' || (r.proposed_gl && r.proposed_gl.includes(gradeFilter.replace('GL ', ''))));
+    return matchSearch && matchGrade;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 24px; color:#64748b;">No photocard registrations found matching search.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r, idx) => {
+    const verifiedName = r.amended_name && r.amended_name !== r.name ? 
+      `<strong>${r.amended_name}</strong><br><small style="color:#64748b;">(Roster: ${r.name})</small>` : 
+      `<strong>${r.name}</strong>`;
+
+    return `
+      <tr>
+        <td style="font-weight:700; text-align:center;">${idx + 1}</td>
+        <td>${verifiedName}</td>
+        <td><code>${r.psn}</code></td>
+        <td><a href="tel:${r.phone || ''}" style="color:#0369a1; text-decoration:none; font-weight:600;">${r.phone || 'N/A'}</a></td>
+        <td>${r.email || 'N/A'}</td>
+        <td>${r.mda}</td>
+        <td>${r.proposed_rank || ''} <span class="grade-tag">${r.proposed_gl || ''}</span></td>
+        <td><span class="badge-cadre">${r.exam_code}</span></td>
+        <td style="font-size:0.8rem; color:#065f46; font-weight:600;">✅ ${r.registered_at_str || r.registered_at}</td>
+        <td style="text-align:center;">
+          <button type="button" class="btn-table-manage" onclick="switchToCandidateManager('${r.psn}')" title="Inspect profile, edit details, or view/edit examination questions">
+            <span>🪪 Manage</span>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// -------------------------------------------------------------
+// Candidate Search & Management Tools
+// -------------------------------------------------------------
+function switchToCandidateManager(psn) {
+  switchAdminTableView('candidates');
+  const inp = document.getElementById('admin-cand-search-input');
+  if (inp) inp.value = psn;
+  executeAdminCandidateSearch(psn);
+}
+
+function quickSearchCandidate(psn) {
+  const inp = document.getElementById('admin-cand-search-input');
+  if (inp) inp.value = psn;
+  executeAdminCandidateSearch(psn);
+}
+
+async function executeAdminCandidateSearch(explicitPsn) {
+  const inp = document.getElementById('admin-cand-search-input');
+  const psn = (explicitPsn || (inp ? inp.value : '')).trim();
+  if (!psn) {
+    showAlertModal('PSN Required', 'Please enter a candidate PSN to search.', 'warning');
+    return;
+  }
+
+  const emptyEl = document.getElementById('admin-cand-empty-state');
+  const loadEl = document.getElementById('admin-cand-loading');
+  const profEl = document.getElementById('admin-cand-profile');
+
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (profEl) profEl.style.display = 'none';
+  if (loadEl) loadEl.style.display = 'block';
+
+  try {
+    const res = await fetch(`/api/admin/candidate/${encodeURIComponent(psn)}`, {
+      headers: {
+        'Authorization': `Bearer ${state.adminToken}`
+      }
+    });
+
+    if (res.status === 401) {
+      state.adminToken = null;
+      sessionStorage.removeItem('kws_admin_token');
+      openAdminLoginModal();
+      return;
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || `Candidate with PSN '${psn}' not found.`);
+    }
+
+    state.currentAdminCandidate = data.candidate;
+    state.currentAdminToken = data.token;
+    state.currentAdminSubmission = data.submission;
+
+    renderCandidateProfileCard(data);
+
+    if (loadEl) loadEl.style.display = 'none';
+    if (profEl) profEl.style.display = 'block';
+  } catch (err) {
+    if (loadEl) loadEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+    showAlertModal('Candidate Not Found', err.message, 'warning');
+  }
+}
+
+function renderCandidateProfileCard(data) {
+  const c = data.candidate;
+  const tok = data.token;
+  const sub = data.submission;
+
+  // Photo
+  const photoImg = document.getElementById('cand-profile-photo');
+  const photoFallback = document.getElementById('cand-profile-avatar-fallback');
+  if (c.passport_photo && c.passport_photo.length > 50) {
+    if (photoImg) {
+      photoImg.src = c.passport_photo;
+      photoImg.style.display = 'block';
+    }
+    if (photoFallback) photoFallback.style.display = 'none';
+  } else {
+    if (photoImg) photoImg.style.display = 'none';
+    if (photoFallback) photoFallback.style.display = 'flex';
+  }
+
+  // Name & Badges
+  const nameEl = document.getElementById('cand-profile-name');
+  const verifiedName = c.amended_name && c.amended_name !== c.name ? 
+    `${c.amended_name} <small style="font-size:0.8rem; color:#64748b; font-weight:normal;">(Roster: ${c.name})</small>` : 
+    (c.name || 'Candidate');
+  if (nameEl) nameEl.innerHTML = verifiedName;
+
+  const statusBadge = document.getElementById('cand-profile-status-badge');
+  if (statusBadge) {
+    const isReg = c.registration_status === 'registered' || c.registered_at;
+    statusBadge.textContent = isReg ? 'Verified / Photocard Ready' : 'Pending Verification';
+    statusBadge.style.background = isReg ? '#dcfce7' : '#fef3c7';
+    statusBadge.style.color = isReg ? '#166534' : '#92400e';
+  }
+
+  const psnEl = document.getElementById('cand-profile-psn');
+  if (psnEl) psnEl.textContent = c.amended_psn || c.psn || 'N/A';
+
+  const mdaEl = document.getElementById('cand-profile-mda');
+  if (mdaEl) mdaEl.textContent = c.mda || 'N/A';
+
+  const groupEl = document.getElementById('cand-profile-group');
+  if (groupEl) groupEl.textContent = c.amended_group || c.group_category || 'N/A';
+
+  const rankEl = document.getElementById('cand-profile-rank');
+  if (rankEl) rankEl.textContent = c.amended_rank || c.proposed_rank || 'N/A';
+
+  const glEl = document.getElementById('cand-profile-gl');
+  if (glEl) glEl.textContent = `Grade Level ${c.amended_gl || c.proposed_gl || 'N/A'}`;
+
+  const paperEl = document.getElementById('cand-profile-paper');
+  if (paperEl) paperEl.textContent = data.assigned_paper || c.amended_exam_code || c.exam_code || 'OHOS/B1';
+
+  const schedEl = document.getElementById('cand-profile-schedule');
+  const dateStr = c.exam_date || 'Tuesday, 29th September 2026';
+  const timeStr = c.batch_time ? ` (${c.batch_session || ''}: ${c.batch_time})` : '';
+  if (schedEl) schedEl.textContent = `${dateStr}${timeStr}`;
+
+  const code1El = document.getElementById('cand-profile-code1');
+  if (code1El) code1El.textContent = c.code_1 || 'N/A';
+
+  const contactEl = document.getElementById('cand-profile-contact');
+  if (contactEl) {
+    contactEl.innerHTML = `Phone: <strong>${c.phone || 'N/A'}</strong> &bull; Email: <strong>${c.email || 'N/A'}</strong>`;
+  }
+
+  // Token Info
+  const tokInfoEl = document.getElementById('cand-profile-token-info');
+  if (tokInfoEl) {
+    if (tok && tok.token_code) {
+      let statusColor = tok.status === 'completed' ? '#7c3aed' : (tok.status === 'active' ? '#2563eb' : '#059669');
+      tokInfoEl.innerHTML = `<span style="font-family:monospace; letter-spacing:0.12em; background:#f1f5f9; padding:2px 8px; border-radius:6px; border:1px solid #cbd5e1;">${tok.token_code}</span> <span style="font-size:0.8rem; font-weight:700; color:${statusColor}; text-transform:uppercase;">[${tok.status}]</span>`;
+    } else {
+      tokInfoEl.innerHTML = `<span style="color:#64748b; font-size:0.9rem; font-weight:500;">No Login PIN bound yet (Auto-binds upon login)</span>`;
+    }
+  }
+
+  // Submission Info
+  const subInfoEl = document.getElementById('cand-profile-submission-info');
+  if (subInfoEl) {
+    if (sub && sub.score_percentage !== undefined) {
+      let scoreColor = sub.score_percentage >= 50 ? '#047857' : '#b91c1c';
+      subInfoEl.innerHTML = `<span style="color:${scoreColor}; font-weight:800;">${sub.score_percentage}% (${sub.correct_count * 2}/100)</span> &bull; <small style="font-weight:600; color:#475569;">${sub.grade_remark || ''}</small>`;
+    } else {
+      subInfoEl.innerHTML = `<span style="color:#64748b; font-size:0.9rem; font-weight:500;">Not Yet Submitted (Active / Ready)</span>`;
+    }
+  }
+}
+
+function clearAdminCandidateSearch() {
+  const inp = document.getElementById('admin-cand-search-input');
+  if (inp) inp.value = '';
+  state.currentAdminCandidate = null;
+  state.currentAdminToken = null;
+  state.currentAdminSubmission = null;
+  const emptyEl = document.getElementById('admin-cand-empty-state');
+  const loadEl = document.getElementById('admin-cand-loading');
+  const profEl = document.getElementById('admin-cand-profile');
+  if (emptyEl) emptyEl.style.display = 'block';
+  if (loadEl) loadEl.style.display = 'none';
+  if (profEl) profEl.style.display = 'none';
+}
+
+function viewCandidatePhotocardDirect() {
+  if (!state.currentAdminCandidate) return;
+  const psn = state.currentAdminCandidate.amended_psn || state.currentAdminCandidate.psn;
+  window.open(`/candidate/photocard/${psn}`, '_blank');
+}
+
+function triggerResetFromCandidateCard() {
+  if (!state.currentAdminCandidate) return;
+  const psn = state.currentAdminCandidate.amended_psn || state.currentAdminCandidate.psn;
+  openAdminResetModal();
+  const psnInp = document.getElementById('admin-reset-psn');
+  if (psnInp) psnInp.value = psn;
+}
+
+// -------------------------------------------------------------
+// Candidate Edit Details Modal
+// -------------------------------------------------------------
+function openEditCandidateModal() {
+  if (!state.currentAdminCandidate) return;
+  const c = state.currentAdminCandidate;
+
+  document.getElementById('edit-cand-original-psn').value = c.psn || '';
+  document.getElementById('edit-cand-name').value = c.amended_name || c.name || '';
+  document.getElementById('edit-cand-psn').value = c.amended_psn || c.psn || '';
+  document.getElementById('edit-cand-mda').value = c.mda || '';
+  document.getElementById('edit-cand-rank').value = c.amended_rank || c.proposed_rank || '';
+  document.getElementById('edit-cand-gl').value = c.amended_gl || c.proposed_gl || '';
+  document.getElementById('edit-cand-group').value = c.amended_group || c.group_category || '';
+  document.getElementById('edit-cand-paper').value = c.amended_exam_code || c.exam_code || '';
+  document.getElementById('edit-cand-code1').value = c.code_1 || '';
+  document.getElementById('edit-cand-batch').value = c.batch_session || '';
+  document.getElementById('edit-cand-time').value = c.batch_time || '';
+  document.getElementById('edit-cand-accred').value = c.accreditation_time || '';
+  document.getElementById('edit-cand-phone').value = c.phone || '';
+  document.getElementById('edit-cand-email').value = c.email || '';
+
+  const msg = document.getElementById('admin-edit-msg');
+  if (msg) msg.style.display = 'none';
+
+  const modal = document.getElementById('admin-edit-candidate-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeEditCandidateModal() {
+  const modal = document.getElementById('admin-edit-candidate-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function saveCandidateDetails() {
+  const origPsn = document.getElementById('edit-cand-original-psn').value.trim();
+  const name = document.getElementById('edit-cand-name').value.trim();
+  const newPsn = document.getElementById('edit-cand-psn').value.trim();
+  const mda = document.getElementById('edit-cand-mda').value.trim();
+  const rank = document.getElementById('edit-cand-rank').value.trim();
+  const gl = document.getElementById('edit-cand-gl').value.trim();
+  const group = document.getElementById('edit-cand-group').value.trim();
+  const paper = document.getElementById('edit-cand-paper').value.trim();
+  const code1 = document.getElementById('edit-cand-code1').value.trim();
+  const batch = document.getElementById('edit-cand-batch').value.trim();
+  const btime = document.getElementById('edit-cand-time').value.trim();
+  const accred = document.getElementById('edit-cand-accred').value.trim();
+  const phone = document.getElementById('edit-cand-phone').value.trim();
+  const email = document.getElementById('edit-cand-email').value.trim();
+
+  const msg = document.getElementById('admin-edit-msg');
+  const btn = document.getElementById('btn-save-cand-details');
+
+  if (!origPsn || !name || !newPsn || !mda) {
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#fee2e2';
+      msg.style.color = '#991b1b';
+      msg.textContent = 'Name, PSN, and MDA are required fields.';
+    }
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span>Saving Changes...</span>`;
+
+  try {
+    const payload = {
+      original_psn: origPsn,
+      name: name,
+      new_psn: newPsn,
+      mda: mda,
+      proposed_rank: rank,
+      proposed_gl: gl,
+      exam_code: paper,
+      group_category: group,
+      batch_session: batch,
+      batch_time: btime,
+      accreditation_time: accred,
+      phone: phone,
+      email: email,
+      code_1: code1
+    };
+
+    const res = await fetch('/api/admin/candidate/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.adminToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Could not update candidate details.');
+    }
+
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#dcfce7';
+      msg.style.color = '#166534';
+      msg.textContent = `✅ Success: Candidate profile updated for PSN ${newPsn}.`;
+    }
+
+    executeAdminCandidateSearch(newPsn);
+    loadAdminSubmissions();
+    loadAdminRegistrations();
+
+    setTimeout(() => {
+      closeEditCandidateModal();
+    }, 1200);
+  } catch (err) {
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#fee2e2';
+      msg.style.color = '#991b1b';
+      msg.textContent = `❌ Error: ${err.message}`;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<span>💾 Save Candidate Details</span>`;
+  }
+}
+
+// -------------------------------------------------------------
+// Questions Inspector & Editor Modal
+// -------------------------------------------------------------
+async function openCandidateQuestionsModal(optionalPsn) {
+  const psn = optionalPsn || (state.currentAdminCandidate ? (state.currentAdminCandidate.amended_psn || state.currentAdminCandidate.psn) : null);
+  if (!psn) {
+    showAlertModal('Select Candidate', 'Please search for or select an officer first.', 'warning');
+    return;
+  }
+
+  const modal = document.getElementById('admin-questions-modal');
+  const titleEl = document.getElementById('admin-qmodal-title');
+  const subEl = document.getElementById('admin-qmodal-subtitle');
+  const listEl = document.getElementById('admin-qmodal-list');
+  const navEl = document.getElementById('admin-qmodal-nav');
+  const counterEl = document.getElementById('admin-qmodal-counter');
+  const saveStatus = document.getElementById('admin-qmodal-save-status');
+
+  if (modal) modal.classList.add('active');
+  if (saveStatus) saveStatus.style.display = 'none';
+
+  if (listEl) {
+    listEl.innerHTML = `
+      <div style="text-align: center; color: #64748b; padding: 40px;">
+        <div class="spinner-small" style="margin: 0 auto 12px auto; width: 32px; height: 32px; border-width: 3px;"></div>
+        Fetching all questions assigned to PSN <strong>${psn}</strong>...
+      </div>
+    `;
+  }
+  if (navEl) navEl.innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/admin/candidate/${encodeURIComponent(psn)}/questions`, {
+      headers: {
+        'Authorization': `Bearer ${state.adminToken}`
+      }
+    });
+
+    if (res.status === 401) {
+      state.adminToken = null;
+      sessionStorage.removeItem('kws_admin_token');
+      openAdminLoginModal();
+      return;
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Could not load examination questions.');
+    }
+
+    state.currentPaperQuestions = data.questions || [];
+    state.currentQuestionsMetadata = data;
+
+    if (titleEl) {
+      titleEl.innerHTML = `📚 Assigned Examination Questions (${data.total_questions || 40} Questions)`;
+    }
+    if (subEl) {
+      const c = data.candidate || {};
+      subEl.innerHTML = `Officer: <strong>${c.name || psn}</strong> (PSN: <code>${c.psn || psn}</code>) &bull; Cadre Paper: <strong style="color:#fff; background:#004d40; padding:2px 8px; border-radius:4px;">${data.paper_code || 'General'}</strong> &bull; MDA: <strong>${c.mda || ''}</strong>`;
+    }
+    if (counterEl) {
+      counterEl.textContent = `${data.total_questions || 40} Questions Loaded`;
+    }
+
+    renderQuestionsModalNavigator(state.currentPaperQuestions);
+    renderQuestionsModalList(state.currentPaperQuestions);
+  } catch (err) {
+    if (listEl) {
+      listEl.innerHTML = `
+        <div style="text-align: center; color: #dc2626; padding: 30px; background: #fee2e2; border-radius: 10px;">
+          ❌ Failed to load questions: ${err.message}
+        </div>
+      `;
+    }
+  }
+}
+
+function closeCandidateQuestionsModal() {
+  const modal = document.getElementById('admin-questions-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function renderQuestionsModalNavigator(questions) {
+  const navEl = document.getElementById('admin-qmodal-nav');
+  if (!navEl) return;
+
+  navEl.innerHTML = questions.map((q, idx) => `
+    <button type="button" class="q-nav-pill ${idx === 0 ? 'active' : ''}" id="q-nav-pill-${idx + 1}" onclick="jumpToQuestionCard(${idx + 1})" title="Question ${idx + 1}">
+      ${idx + 1}
+    </button>
+  `).join('');
+}
+
+function jumpToQuestionCard(qNum) {
+  const card = document.getElementById(`admin-q-card-${qNum}`);
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.style.borderColor = '#00796b';
+    card.style.boxShadow = '0 0 0 3px rgba(0, 121, 107, 0.25)';
+    setTimeout(() => {
+      card.style.boxShadow = '';
+    }, 1500);
+  }
+
+  document.querySelectorAll('.q-nav-pill').forEach(p => p.classList.remove('active'));
+  const pill = document.getElementById(`q-nav-pill-${qNum}`);
+  if (pill) pill.classList.add('active');
+}
+
+function renderQuestionsModalList(questions) {
+  const listEl = document.getElementById('admin-qmodal-list');
+  if (!listEl) return;
+
+  if (!questions || questions.length === 0) {
+    listEl.innerHTML = `<div style="text-align: center; color: #64748b; padding: 40px;">No questions found.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = questions.map((q, idx) => {
+    const qNum = idx + 1;
+    const correctKey = (q.correct_answer || 'A').toUpperCase().trim();
+    const sourceTable = q.table || 'cbt_questions';
+
+    return `
+      <div class="admin-question-card" id="admin-q-card-${qNum}" data-qindex="${idx}" data-qid="${q.id}" data-table="${sourceTable}">
+        <div class="admin-question-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="admin-qnum-badge">Q${qNum}</span>
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">DB ID: #${q.id} &bull; Table: <code>${sourceTable}</code></span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:0.75rem; font-weight:800; color:#475569; text-transform:uppercase;">Correct Key:</span>
+              <div class="key-selector-group">
+                ${['A', 'B', 'C', 'D'].map(k => `
+                  <button type="button" class="key-choice-btn ${correctKey === k ? 'selected' : ''}" onclick="selectQuestionKey(${idx}, '${k}')" id="key-btn-${idx}-${k}">
+                    ${k}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <button type="button" class="btn-ctrl" style="padding:5px 14px; font-size:0.78rem; font-weight:700; background:#e6f4ea; border-color:#86efac; color:#065f46;" id="btn-save-q-${idx}" onclick="saveSingleQuestion(${idx})">
+              <span>💾 Save Q${qNum}</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          <label style="font-size:0.75rem; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:4px; display:block;">Question Text</label>
+          <textarea class="form-control question-text-input" id="q-text-${idx}" rows="2" style="font-size:0.95rem; font-weight:500; resize:vertical; line-height:1.45;" oninput="markQuestionModified(${idx})">${escapeHtml(q.question_text || '')}</textarea>
+        </div>
+
+        <div class="admin-q-opt-grid">
+          ${['A', 'B', 'C', 'D'].map(k => {
+            const optVal = q[`option_${k.toLowerCase()}`] || '';
+            const isCorrect = (correctKey === k);
+            return `
+              <div class="admin-q-opt-wrap ${isCorrect ? 'correct' : ''}" id="opt-wrap-${idx}-${k}">
+                <span class="admin-q-opt-badge">${k}</span>
+                <input type="text" class="admin-q-opt-input" id="opt-input-${idx}-${k}" value="${escapeHtml(optVal)}" oninput="markQuestionModified(${idx})" placeholder="Option ${k} text...">
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function markQuestionModified(qIndex) {
+  const pill = document.getElementById(`q-nav-pill-${qIndex + 1}`);
+  if (pill) pill.classList.add('modified');
+}
+
+function selectQuestionKey(qIndex, key) {
+  ['A', 'B', 'C', 'D'].forEach(k => {
+    const btn = document.getElementById(`key-btn-${qIndex}-${k}`);
+    const wrap = document.getElementById(`opt-wrap-${qIndex}-${k}`);
+    if (btn) {
+      if (k === key) btn.classList.add('selected');
+      else btn.classList.remove('selected');
+    }
+    if (wrap) {
+      if (k === key) wrap.classList.add('correct');
+      else wrap.classList.remove('correct');
+    }
+  });
+
+  if (state.currentPaperQuestions && state.currentPaperQuestions[qIndex]) {
+    state.currentPaperQuestions[qIndex].correct_answer = key;
+  }
+  markQuestionModified(qIndex);
+}
+
+async function saveSingleQuestion(qIndex) {
+  const card = document.getElementById(`admin-q-card-${qIndex + 1}`);
+  if (!card) return;
+
+  const qId = parseInt(card.dataset.qid);
+  const table = card.dataset.table || 'cbt_questions';
+  const text = (document.getElementById(`q-text-${qIndex}`).value || '').trim();
+  const optA = (document.getElementById(`opt-input-${qIndex}-A`).value || '').trim();
+  const optB = (document.getElementById(`opt-input-${qIndex}-B`).value || '').trim();
+  const optC = (document.getElementById(`opt-input-${qIndex}-C`).value || '').trim();
+  const optD = (document.getElementById(`opt-input-${qIndex}-D`).value || '').trim();
+
+  let correctKey = 'A';
+  ['A', 'B', 'C', 'D'].forEach(k => {
+    const btn = document.getElementById(`key-btn-${qIndex}-${k}`);
+    if (btn && btn.classList.contains('selected')) correctKey = k;
+  });
+
+  const saveBtn = document.getElementById(`btn-save-q-${qIndex}`);
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<span>Saving...</span>`;
+  }
+
+  try {
+    const res = await fetch('/api/admin/question/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.adminToken}`
+      },
+      body: JSON.stringify({
+        question_id: qId,
+        table_name: table,
+        question_text: text,
+        option_a: optA,
+        option_b: optB,
+        option_c: optC,
+        option_d: optD,
+        correct_answer: correctKey
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Could not update question.');
+    }
+
+    if (saveBtn) {
+      saveBtn.innerHTML = `<span>✅ Saved!</span>`;
+      saveBtn.style.background = '#bbf7d0';
+      setTimeout(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<span>💾 Save Q${qIndex + 1}</span>`;
+        saveBtn.style.background = '#e6f4ea';
+      }, 1800);
+    }
+
+    const pill = document.getElementById(`q-nav-pill-${qIndex + 1}`);
+    if (pill) pill.classList.remove('modified');
+  } catch (err) {
+    showAlertModal('Save Error', err.message, 'error');
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<span>💾 Save Q${qIndex + 1}</span>`;
+    }
+  }
+}
+
+async function saveAllQuestionsModal() {
+  if (!state.currentPaperQuestions || state.currentPaperQuestions.length === 0) return;
+
+  const btn = document.getElementById('btn-batch-save-questions');
+  const statusEl = document.getElementById('admin-qmodal-save-status');
+
+  const questionsPayload = [];
+  for (let idx = 0; idx < state.currentPaperQuestions.length; idx++) {
+    const card = document.getElementById(`admin-q-card-${idx + 1}`);
+    if (!card) continue;
+    const qId = parseInt(card.dataset.qid);
+    const table = card.dataset.table || 'cbt_questions';
+    const text = (document.getElementById(`q-text-${idx}`).value || '').trim();
+    const optA = (document.getElementById(`opt-input-${idx}-A`).value || '').trim();
+    const optB = (document.getElementById(`opt-input-${idx}-B`).value || '').trim();
+    const optC = (document.getElementById(`opt-input-${idx}-C`).value || '').trim();
+    const optD = (document.getElementById(`opt-input-${idx}-D`).value || '').trim();
+
+    let correctKey = 'A';
+    ['A', 'B', 'C', 'D'].forEach(k => {
+      const b = document.getElementById(`key-btn-${idx}-${k}`);
+      if (b && b.classList.contains('selected')) correctKey = k;
+    });
+
+    questionsPayload.push({
+      question_id: qId,
+      table_name: table,
+      question_text: text,
+      option_a: optA,
+      option_b: optB,
+      option_c: optC,
+      option_d: optD,
+      correct_answer: correctKey
+    });
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>Saving Questions...</span>`;
+  }
+
+  try {
+    const res = await fetch('/api/admin/questions/batch-update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.adminToken}`
+      },
+      body: JSON.stringify({ questions: questionsPayload })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Batch questions update failed.');
+    }
+
+    if (statusEl) {
+      statusEl.style.display = 'inline-block';
+      statusEl.textContent = `✅ Successfully saved all ${data.count || 40} questions!`;
+      setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+    }
+
+    document.querySelectorAll('.q-nav-pill').forEach(p => p.classList.remove('modified'));
+
+    showAlertModal('Questions Saved', `All ${data.count || 40} examination questions have been successfully saved to the official database.`, 'success');
+  } catch (err) {
+    showAlertModal('Save Error', err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>💾 Save All Questions</span>`;
+    }
+  }
+}
+
+function filterQuestionsModalList() {
+  const query = (document.getElementById('admin-qmodal-search').value || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('.admin-question-card');
+  let matchCount = 0;
+
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const matches = !query || text.includes(query);
+    card.style.display = matches ? 'block' : 'none';
+    if (matches) matchCount++;
+  });
+
+  const counterEl = document.getElementById('admin-qmodal-counter');
+  if (counterEl) {
+    counterEl.textContent = query ? `${matchCount} of ${cards.length} matching` : `${cards.length} Questions Loaded`;
+  }
+}
+
+
+// -------------------------------------------------------------
+// Admin Scratch Card Tokens & Candidate Reset Tools
+// -------------------------------------------------------------
+async function loadAdminTokens() {
+  if (!state.adminToken) return;
+  try {
+    const res = await fetch('/api/admin/tokens', {
+      headers: { 'Authorization': `Bearer ${state.adminToken}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    state.adminTokensSummary = data;
+
+    const totEl = document.getElementById('admin-tok-total');
+    const unEl = document.getElementById('admin-tok-unassigned');
+    const actEl = document.getElementById('admin-tok-active');
+    const compEl = document.getElementById('admin-tok-completed');
+
+    if (totEl) totEl.textContent = Number(data.summary.total_tokens).toLocaleString();
+    if (unEl) unEl.textContent = Number(data.summary.unassigned).toLocaleString();
+    if (actEl) actEl.textContent = Number(data.summary.active).toLocaleString();
+    if (compEl) compEl.textContent = Number(data.summary.completed).toLocaleString();
+  } catch (err) {
+    console.warn('Could not load admin tokens summary:', err);
+  }
+}
+
+async function openAdminTokensModal() {
+  const modal = document.getElementById('admin-tokens-modal');
+  const grid = document.getElementById('admin-tokens-grid');
+  if (!modal) return;
+  modal.classList.add('active');
+
+  if (grid) grid.innerHTML = `<div style="text-align: center; color: #64748b; padding: 24px; grid-column: 1 / -1;">⏳ Loading examination tokens...</div>`;
+
+  try {
+    const res = await fetch('/api/admin/tokens', {
+      headers: { 'Authorization': `Bearer ${state.adminToken}` }
+    });
+    const data = await res.json();
+    const tokens = data.sample_unassigned_tokens || data.sample_tokens || [];
+
+    if (tokens.length === 0) {
+      grid.innerHTML = `<div style="text-align: center; color: #64748b; padding: 24px; grid-column: 1 / -1;">No unassigned scratch tokens available in pool.</div>`;
+      return;
+    }
+
+    grid.innerHTML = tokens.map((tok, idx) => `
+      <div class="token-slip-item">
+        <div class="tok-mda">NCDMB Module 1 CBT</div>
+        <div class="tok-num">${tok}</div>
+        <div class="tok-sub">Portal: <strong>www.ncdmb.gov.ng</strong> &bull; Slip #${idx + 1}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    if (grid) grid.innerHTML = `<div style="text-align: center; color: #dc2626; padding: 24px; grid-column: 1 / -1;">Failed to load tokens: ${err.message}</div>`;
+  }
+}
+
+function closeAdminTokensModal() {
+  const modal = document.getElementById('admin-tokens-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function printTokenSlips() {
+  const grid = document.getElementById('admin-tokens-grid');
+  if (!grid) return;
+  const printWin = window.open('', '', 'width=900,height=650');
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>NCDMB Module 1 CBT - Exam Scratch Card Tokens</title>
+      <style>
+        body { font-family: monospace, sans-serif; padding: 20px; }
+        h2 { text-align: center; margin-bottom: 4px; font-size: 18px; }
+        p { text-align: center; font-size: 12px; color: #555; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .slip { border: 1.5px dashed #333; padding: 12px 8px; text-align: center; border-radius: 6px; page-break-inside: avoid; }
+        .mda { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #444; }
+        .num { font-size: 26px; font-weight: 900; letter-spacing: 0.18em; margin: 8px 0; color: #000; }
+        .info { font-size: 9px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <h2>NIGERIAN CONTENT DEVELOPMENT AND MONITORING BOARD (NCDMB)</h2>
+      <p>2026 PROMOTION EVALUATION CBT - OFFICIAL 5-DIGIT EXAM SCRATCH CARD SLIPS<br>Portal: <strong>www.ncdmb.gov.ng</strong></p>
+      <div class="grid">
+        ${grid.innerHTML}
+      </div>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 400);
+}
+
+function openAdminResetModal() {
+  const modal = document.getElementById('admin-reset-modal');
+  const msg = document.getElementById('admin-reset-msg');
+  if (msg) msg.style.display = 'none';
+  if (modal) modal.classList.add('active');
+}
+
+function closeAdminResetModal() {
+  const modal = document.getElementById('admin-reset-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function executeAdminCandidateReset() {
+  const psnInput = document.getElementById('admin-reset-psn');
+  const reasonInput = document.getElementById('admin-reset-reason');
+  const msg = document.getElementById('admin-reset-msg');
+
+  const psn = (psnInput ? psnInput.value : '').trim();
+  const reason = (reasonInput ? reasonInput.value : '').trim();
+
+  if (!psn) {
+    showAlertModal('PSN Required', 'Please enter candidate PSN to reset.', 'warning');
+    return;
+  }
+
+  const confirmed = await showConfirmModal(
+    'Confirm Candidate Retake',
+    `Are you sure you want to archive previous submissions and unlock PSN ${psn} for a retake?`,
+    {
+      type: 'danger',
+      confirmText: 'Yes, Unlock Candidate',
+      cancelText: 'Cancel',
+      confirmBg: '#dc2626'
+    }
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/reset-candidate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.adminToken}`
+      },
+      body: JSON.stringify({ psn, reason })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Reset failed.');
+    }
+
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#dcfce7';
+      msg.style.color = '#166534';
+      msg.textContent = `✅ Success: PSN ${psn} has been unlocked and archived for retake.`;
+    }
+
+    loadAdminSubmissions();
+    loadAdminTokens();
+    setTimeout(() => { closeAdminResetModal(); }, 1600);
+  } catch (err) {
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#fee2e2';
+      msg.style.color = '#991b1b';
+      msg.textContent = `❌ Error: ${err.message}`;
+    }
+  }
+}
+
+async function confirmResetAllTokens() {
+  const confirmed = await showConfirmModal(
+    'Reset All Examination Login PINs',
+    'Are you sure you want to reset ALL 3,500 Exam Login PINs (Code 2) to unassigned?\n\n' +
+    'This will clear all token assignments and mark 100% of the PINs as available for candidate single-use.',
+    {
+      type: 'warning',
+      confirmText: 'Yes, Reset All PINs',
+      cancelText: 'Cancel',
+      confirmBg: '#c2410c'
+    }
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    showRetryToast('⏳ Resetting all Exam Login PINs...');
+    const res = await fetch('/api/admin/reset-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.adminToken}`
+      }
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Could not reset Login PINs.');
+    }
+
+    showRetryToast(`✅ ${data.message || 'All Login PINs reset to unassigned.'}`);
+    if (typeof loadAdminTokens === 'function') loadAdminTokens();
+    if (typeof loadAdminTokensSummary === 'function') loadAdminTokensSummary();
+  } catch (err) {
+    alert(`❌ Failed to reset tokens: ${err.message}`);
+  }
+}
+
+// -------------------------------------------------------------
+// Event Listeners
+// -------------------------------------------------------------
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    handleConfirmModalChoice(false);
+    closeAlertModal();
+    closeSubmitModal();
+    closeExitModal();
+    closeAdminLoginModal();
+    closeEditCandidateModal();
+    closeCandidateQuestionsModal();
+    return;
+  }
+
+  if (!views.exam.classList.contains('active')) return;
+
+  const key = e.key.toUpperCase();
+  if (['A', 'B', 'C', 'D'].includes(key)) {
+    selectOption(key);
+  } else if (key === 'ARROWLEFT' || key === 'P') {
+    prevQuestion();
+  } else if (key === 'ARROWRIGHT' || key === 'N') {
+    nextQuestion();
+  } else if (key === 'F') {
+    toggleCurrentFlag();
+  }
+});
+
+// Admin Logout
+const adminLogoutBtn = document.getElementById('btn-admin-logout');
+if (adminLogoutBtn) {
+  adminLogoutBtn.addEventListener('click', async () => {
+    if (state.adminToken) {
+      try {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.adminToken}` }
+        });
+      } catch (e) {}
+    }
+    state.adminToken = null;
+    state.adminRole = 'superadmin';
+    state.adminUser = 'admin';
+    sessionStorage.removeItem('kws_admin_token');
+    sessionStorage.removeItem('kws_admin_role');
+    sessionStorage.removeItem('kws_admin_user');
+    try {
+      document.cookie = 'admin_token=; path=/; max-age=0; SameSite=Lax';
+    } catch (e) {}
+    window.history.pushState({}, '', '/');
+    showView('entry');
+    switchEntryTab('start');
+  });
+}
+
+// Admin Filter Inputs
+const adminSearchInput = document.getElementById('admin-search');
+if (adminSearchInput) adminSearchInput.addEventListener('input', onAdminFilterChange);
+const adminGradeSelect = document.getElementById('admin-grade-filter');
+if (adminGradeSelect) adminGradeSelect.addEventListener('change', onAdminFilterChange);
+
+// Result Actions
+document.getElementById('btn-print-slip').addEventListener('click', () => {
+  window.print();
+});
+
+window.addEventListener('popstate', checkRoute);
+
+// Run initial status & route check on load
+initPortalStatus();
+
+// Periodically synchronize portal status with backend (every 30s and on focus)
+if (!window.__portalStatusSyncInstalled) {
+  window.__portalStatusSyncInstalled = true;
+  setInterval(initPortalStatus, 30000);
+  window.addEventListener('focus', initPortalStatus);
+}
+checkRoute();
+
+
+function openOfflineSubmitModal(payload, errorMsg) {
+  const modal = document.getElementById('offline-submit-modal');
+  if (!modal) {
+    showAlertModal(
+      'Internet Disconnected',
+      'Your network connection was interrupted. All answers are 100% safely saved on your device. Please reconnect or inform an invigilator.',
+      'warning'
+    );
+    return;
+  }
+  const countEl = document.getElementById('offline-saved-count');
+  if (countEl) countEl.textContent = Object.keys(payload.answers || {}).length;
+  
+  const statusEl = document.getElementById('offline-submit-status');
+  if (statusEl) {
+    statusEl.innerHTML = `⚠️ <em>Weak or disconnected internet</em>.<br><br>The portal is automatically retrying every 3 seconds as soon as network signal is restored. You will not lose any answers.`;
+  }
+  modal.style.display = 'flex';
+  
+  if (offlineSubmitInterval) clearInterval(offlineSubmitInterval);
+  offlineSubmitInterval = setInterval(() => {
+    if (navigator.onLine) {
+      retryOfflineSubmission(true);
+    }
+  }, 3500);
+}
+
+function closeOfflineSubmitModal() {
+  const modal = document.getElementById('offline-submit-modal');
+  if (modal) modal.style.display = 'none';
+  if (offlineSubmitInterval) {
+    clearInterval(offlineSubmitInterval);
+    offlineSubmitInterval = null;
+  }
+}
+
+async function retryOfflineSubmission(isAuto = false) {
+  if (!pendingSubmissionPayload) {
+    try {
+      const psn = state.candidate ? state.candidate.psn : '';
+      const raw = localStorage.getItem(getPendingSubKey(psn));
+      if (raw) pendingSubmissionPayload = JSON.parse(raw);
+    } catch(e) {}
+  }
+  if (!pendingSubmissionPayload) return;
+
+  const retryBtn = document.getElementById('btn-offline-retry');
+  if (retryBtn) {
+    retryBtn.disabled = true;
+    retryBtn.innerHTML = `<span>⏳ Connecting to Server...</span>`;
+  }
+
+  try {
+    const response = await fetchWithRetry('/api/submit-exam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pendingSubmissionPayload)
+    }, 2, 1200);
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Server error on submission.');
+    }
+
+    state.isSubmitted = true;
+    clearExamProgress(pendingSubmissionPayload.psn);
+    closeOfflineSubmitModal();
+    renderResultSlip(result);
+    showView('result');
+  } catch (err) {
+    const statusEl = document.getElementById('offline-submit-status');
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="color:#b91c1c; font-weight:600;">⚠️ Still waiting for internet connection... Re-testing automatically.</span>`;
+    }
+  } finally {
+    if (retryBtn) {
+      retryBtn.disabled = false;
+      retryBtn.innerHTML = `<span>🔄 Tap to Retry Submission Now</span>`;
+    }
+  }
+}
+
+function checkNetworkAndNotify() {
+  if (navigator.onLine) {
+    showRetryToast('✅ Internet connection is active. Submitting now...');
+    retryOfflineSubmission();
+  } else {
+    showRetryToast('⚠️ Device reports offline. Please verify Wi-Fi or mobile data.');
+  }
+}
+
+// ============================================================================
+// HOMEPAGE MANDATORY EXAMINATION INSTRUCTIONS MODAL
+// ============================================================================
+function openHomepageInstructionsModal() {
+  const modal = document.getElementById('homepage-instructions-modal');
+  const entryView = document.getElementById('view-entry');
+  // Open if modal exists and candidate is on the homepage/entry view
+  if (modal && (!entryView || entryView.classList.contains('active'))) {
+    modal.classList.add('active');
+  }
+}
+
+function closeHomepageInstructionsModal() {
+  const modal = document.getElementById('homepage-instructions-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Initialize proctorEngine on page load (automatic popup on load disabled)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof proctorEngine !== 'undefined') proctorEngine.init();
+  });
+} else {
+  // If DOM is already interactive or complete
+  if (typeof proctorEngine !== 'undefined') proctorEngine.init();
+}
